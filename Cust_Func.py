@@ -12,6 +12,32 @@ from statsmodels.tsa.arima_model import ARMA, ARIMA, ARMAResults, ARIMAResults
 from statsmodels.tsa.seasonal import seasonal_decompose as sd
 from statsmodels.tsa.statespace.varmax import VARMAX, VARMAXResults
 from matplotlib.lines import Line2D
+import plotly.express as px
+import plotly.io as pio
+pio.templates
+
+from sklearn.preprocessing import MinMaxScaler
+from keras.preprocessing.sequence import TimeseriesGenerator
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import LSTM
+
+def clean_dataframe(dataframe,percent_data_missing_threshold):
+    """ 
+    *purpose: Pass in dataframe and threshold percent as a decimal, returns a dataframe based on that threshold
+    
+    *inputs:
+    dataframe: dataframe
+    percent_data_missing_threshold: desired threshold expressed in decimal form
+        eg. .05 = 5%  this would result in columns missing 5% or more of their data as NaN to be removed from the dataframe
+            .10 = 10% this would result in columns missing 10% or more of their data as NaN to be removed from the dataframe
+    
+    """
+    # calculate threshold as a percent of dataframe
+    threshold_num = len(dataframe)*percent_data_missing_threshold
+    dataframe_out = dataframe.dropna(axis=1,thresh=len(dataframe)-threshold_num)
+
+    return dataframe_out
 
 def adf_test(series,title=''):
     """
@@ -36,7 +62,7 @@ def adf_test(series,title=''):
         print("Data has a unit root and is non-stationary")
         
 
-def create_ARIMA_summary_forecast_state(df_states,state_postal_code,days):
+def create_ARIMA_summary_forecast_state(df_states,state_postal_code,days): # cas_state
     
     '''
     *purpose: creates a SARIMA model based on datetime dataframe with column 'death'
@@ -89,7 +115,7 @@ def create_ARIMA_summary_forecast_state(df_states,state_postal_code,days):
 
     # graph test vs. prediction data - {PLOT}
     legend_elements = [Line2D([0], [0], color='b', lw=4, label='Actual Deaths'),
-                       Line2D([0], [0], color='r', lw=4, label=f'SARIMA{arima_order} Predictions')]
+                       Line2D([0], [0], color='#FFA500', lw=4, label=f'SARIMA{arima_order} Predictions')]
 
     fig, ax = plt.subplots(figsize=(20,10));
     ax.plot(test_data['death'])
@@ -110,9 +136,9 @@ def create_ARIMA_summary_forecast_state(df_states,state_postal_code,days):
 
     # graph forecast deaths, breakout of train and test split is present in graph - {PLOT}
     legend_elements = [Line2D([0], [0], color='b', lw=5, label='Actual Deaths'),
-                       Line2D([0], [0], color='r', lw=5, label='Actual Deaths'),
-                       Line2D([0], [0], color='y', lw=5, label=f'SARIMA{arima_order} Predictions'),
-                       Line2D([0], [0], color='g', lw=5, label=f'SARIMA{arima_order} {days} Day Forecast')]
+                       Line2D([0], [0], color='#FFA500', lw=5, label='Actual Deaths'),
+                       Line2D([0], [0], color='g', lw=5, label=f'SARIMA{arima_order} Predictions'),
+                       Line2D([0], [0], color='r', lw=5, label=f'SARIMA{arima_order} {days} Day Forecast')]
 
     fig, ax = plt.subplots(figsize=(20,10));
     ax.plot(train_data['death'])
@@ -126,6 +152,102 @@ def create_ARIMA_summary_forecast_state(df_states,state_postal_code,days):
     plt.ylabel('Deaths')
     plt.show();
     
+    last_predictions = len(fcast)-5
+    actual_numbers = fcast[last_predictions:]
+    
+    return actual_numbers
+    
+# def dashboard_states(df_states,state_postal_code,days):
+#     '''
+#     *purpose: creates a SARIMA model based on datetime dataframe with column 'death'
+#               and a state postal code under column 'state'
+    
+#     *inputs:
+#     df_states: a dataframe of the state Covid data
+#     state_postal_code: state postal code to get state related death data
+#     days: number of days out you wish to forecast
+#     '''
+#     # create dataframe based on state_postal_code
+#     df_state = df_states[df_states['state']==state_postal_code]    
+
+#     # sort index, lowest index to oldest date, drop na's in death column
+#     df_state = df_state.sort_index()
+#     df_state = df_state.dropna(subset=['death'])
+#     df_state_new = pd.DataFrame(df_state)
+
+#     # create stepwise fit model, see summary
+#     stepwise_fit = auto_arima(df_state_new['death'],start_p=0,start_q=0,max_p=10,
+#                               max_q=10, seasonal=True, maxiter=1000, method='bfgs',
+#                               n_jobs=-1,stepwise=True) 
+
+#     # auto_arima automatically differences and returns that differencing for the model in the arima_order = stepwise_fit.order below
+#     ## find correct ARIMA order
+
+#     arima_order = stepwise_fit.order
+
+#     length = len(df_state_new)-days
+
+#     train_data = df_state_new.iloc[:length]
+#     test_data = df_state_new.iloc[length:]
+
+#     model = sm.tsa.statespace.SARIMAX(train_data['death'],trend='ct', order=arima_order)
+#     res = model.fit(disp=False)
+
+#     start = len(train_data)
+#     end = len(train_data) + len(test_data) - 1
+
+#     predictions_state = res.predict(start,end,typ='endogenous').rename(f'SARIMA{arima_order} Predictions')
+
+#     # ensure predictions are in DataFrame format, label index as date to match df_alaska
+#     # predictions_state = pd.DataFrame(predictions_state)
+#     predictions_state.index.name = 'date'
+
+#     train_data.index.freq = 'D'
+#     test_data.index.freq = 'D' # -1D is reverse index, ie most recent date is at top of dataframe
+#     # perform sort_index on dataframe to correct. set frequencies to match for plotting
+#     # on same visualization
+
+#     # plotly express graph here - {PLOT}
+#     # graph test vs. prediction data - {PLOT}
+#     legend_elements = [Line2D([0], [0], color='b', lw=4, label='Actual Deaths'),
+#                        Line2D([0], [0], color='#FFA500', lw=4, label=f'SARIMA{arima_order} Predictions')]
+
+#     fig, ax = plt.subplots(figsize=(20,10));
+#     ax.plot(test_data['death'])
+#     ax.plot(predictions_state);
+#     ax.grid(b=True,alpha=.5)
+#     plt.title(f'Test Data vs SARIMA, {state_postal_code}')
+#     ax.legend(handles=legend_elements)
+#     plt.xlabel('Date')
+#     plt.ylabel('Deaths')
+#     plt.show();
+
+#     # train model for forecast
+#     model = sm.tsa.statespace.SARIMAX(df_state['death'],trend='ct', order=arima_order)
+#     res = model.fit(disp=False)
+
+#     # create forecast
+#     fcast = res.predict(start=len(df_state_new),end=len(df_state_new)+days, typ='endogenous').rename(f'SARIMA{arima_order} {days} Days Forecast')
+
+#     # graph forecast deaths, breakout of train and test split is present in graph - {PLOT}
+#     legend_elements = [Line2D([0], [0], color='b', lw=5, label='Actual Deaths'),
+#                        Line2D([0], [0], color='#FFA500', lw=5, label='Actual Deaths'),
+#                        Line2D([0], [0], color='g', lw=5, label=f'SARIMA{arima_order} Predictions'),
+#                        Line2D([0], [0], color='r', lw=5, label=f'SARIMA{arima_order} {days} Day Forecast')]
+
+#     fig, ax = plt.subplots(figsize=(20,10));
+#     ax.plot(train_data['death'])
+#     ax.plot(test_data['death'])
+#     ax.plot(predictions_state)
+#     ax.plot(fcast)
+#     ax.grid(b=True,alpha=.5)
+#     plt.title(f'SARIMA {days} Day Forecast, {state_postal_code}')
+#     ax.legend(handles=legend_elements)
+#     plt.xlabel('Date')
+#     plt.ylabel('Deaths')
+#     plt.show();
+   
+
 def create_ARIMA_summary_forecast_USA(df_states,days):
     
     '''
@@ -174,7 +296,7 @@ def create_ARIMA_summary_forecast_USA(df_states,days):
 
     # graph test vs. prediction data - {PLOT}
     legend_elements = [Line2D([0], [0], color='b', lw=4, label='Actual Deaths'),
-                       Line2D([0], [0], color='r', lw=4, label=f'SARIMA{arima_order} Predictions')]
+                       Line2D([0], [0], color='#FFA500', lw=4, label=f'SARIMA{arima_order} Predictions')]
 
     fig, ax = plt.subplots(figsize=(20,10));
     ax.plot(test_data['death'])
@@ -195,9 +317,9 @@ def create_ARIMA_summary_forecast_USA(df_states,days):
 
     # graph forecast deaths, breakout of train and test split is present in graph - {PLOT}
     legend_elements = [Line2D([0], [0], color='b', lw=5, label='Actual Deaths'),
-                   Line2D([0], [0], color='r', lw=5, label='Actual Deaths'),
-                   Line2D([0], [0], color='y', lw=5, label=f'SARIMA{arima_order} Predictions'),
-                   Line2D([0], [0], color='g', lw=5, label=f'SARIMA{arima_order} {days} Day Forecast')]
+                       Line2D([0], [0], color='#FFA500', lw=5, label='Actual Deaths'),
+                       Line2D([0], [0], color='g', lw=5, label=f'SARIMA{arima_order} Predictions'),
+                       Line2D([0], [0], color='r', lw=5, label=f'SARIMA{arima_order} {days} Day Forecast')]
 
     fig, ax = plt.subplots(figsize=(20,10));
     ax.plot(train_data['death'])
@@ -210,6 +332,101 @@ def create_ARIMA_summary_forecast_USA(df_states,days):
     plt.xlabel('Date')
     plt.ylabel('Deaths')
     plt.show();
+    
+    last_predictions = len(fcast)-5
+    actual_numbers = fcast[last_predictions:]
+    
+    return actual_numbers
+    
+def create_NN_predict(df_states,state_postal_code,days,epochs):
+    
+    '''
+    *purpose: creates a RNN model based on datetime dataframe with column 'death'
+              and a state postal code under column 'state'
+    
+    *inputs:
+    df_states: a dataframe of the state Covid data
+    state_postal_code: state postal code to get state related death data
+    days: number of days out you wish to forecast
+    epochs: number of epochs you wish to run
+    '''
+    
+    # create dataframe based on state_postal_code
+    df_state = df_states[df_states['state']==state_postal_code]    
+
+    # sort index, lowest index to oldest date, drop na's in death column
+    df_state = df_state.sort_index()
+    df_state = df_state.dropna(subset=['death'])
+    df_state_new = pd.DataFrame(df_state['death'])
+
+    length = len(df_state_new)-days
+
+    # create train/test split based on days forecasting
+    train_data = df_state_new.iloc[:length]
+    test_data = df_state_new.iloc[length:]
+
+    # create scaler
+    scaler = MinMaxScaler()
+
+    # fit on the train data
+    scaler.fit(train_data)
+
+    # scale the train and test data
+    scaled_train = scaler.transform(train_data)
+    scaled_test = scaler.transform(test_data)
+
+    # define time series generator
+    days
+    n_features = 1
+    generator = TimeseriesGenerator(scaled_train, scaled_train, 
+                                    length=days, batch_size=1)
+
+    # build LSTM model 
+    model = Sequential()
+    model.add(LSTM(300, activation='relu',
+                   input_shape=(days,n_features)))
+    model.add(Dense(1))
+    model.compile(optimizer='adam',loss='mse')
+
+    # fit the model
+    model.fit_generator(generator,epochs=epochs)
+
+    # get data for loss values
+    loss_per_epoch = model.history.history['loss']
+    # plt.plot(range(len(loss_per_epoch)),loss_per_epoch);
+
+    # evaluate the batch
+    first_eval = scaled_train[-days:]
+    first_eval = first_eval.reshape((1, days, n_features))
+
+    scaler_predictions = []
+
+    first_eval = scaled_train[-days:]
+    current_batch = first_eval.reshape((1, days, n_features))
+
+    # create test predictions
+    for i in range(len(test_data)):
+        current_pred = model.predict(current_batch)[0]
+        scaler_predictions.append(current_pred) 
+        current_batch = np.append(current_batch[:,1:,:],[[current_pred]],axis=1)
+
+    true_predictions = scaler.inverse_transform(scaler_predictions)
+    test_data['Predictions'] = true_predictions
+
+    legend_elements = [Line2D([0], [0], color='g', lw=4, label='Actual Deaths'),
+                       Line2D([0], [0], color='#FFA500', lw=4, label=f'RNN {state_postal_code} Predictions')]
+
+    fig, ax = plt.subplots(figsize=(20,10));
+    ax.plot(test_data)
+    ax.plot(train_data);
+    ax.grid(b=True,alpha=.5)
+    plt.title(f'Test Data vs RNN, {state_postal_code}')
+    ax.legend(handles=legend_elements)
+    plt.xlabel('Date')
+    plt.ylabel('Deaths')
+    plt.show();    
+    
+    
     
 # def create_VARMAX_summary_forecast_state(df_states,state_postal_code,days):
     
