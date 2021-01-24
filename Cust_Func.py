@@ -3,6 +3,7 @@ from statsmodels.tsa.statespace.tools import diff
 from statsmodels.tsa.stattools import acovf, acf, pacf, pacf_yw, pacf_ols
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.stattools import adfuller
+from statsmodels.tools.eval_measures import mse,rmse
 from pmdarima import auto_arima
 import pandas as pd
 import numpy as np
@@ -22,6 +23,8 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import LSTM
 
+from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
+
 def clean_dataframe(dataframe,percent_data_missing_threshold):
     """ 
     *purpose: Pass in dataframe and threshold percent as a decimal, returns a dataframe based on that threshold
@@ -35,9 +38,9 @@ def clean_dataframe(dataframe,percent_data_missing_threshold):
     """
     # calculate threshold as a percent of dataframe
     threshold_num = len(dataframe)*percent_data_missing_threshold
-    dataframe_out = dataframe.dropna(axis=1,thresh=len(dataframe)-threshold_num)
+    dataframe = dataframe.dropna(axis=1,thresh=len(dataframe)-threshold_num)
 
-    return dataframe_out
+    return dataframe
 
 def adf_test(series,title=''):
     """
@@ -62,7 +65,7 @@ def adf_test(series,title=''):
         print("Data has a unit root and is non-stationary")
         
 
-def create_ARIMA_summary_forecast_state(df_states,state_postal_code,days): # cas_state
+def create_SARIMA_summary_forecast_state(df_states,state_postal_code,days): # cas_state()
     
     '''
     *purpose: creates a SARIMA model based on datetime dataframe with column 'death'
@@ -157,98 +160,120 @@ def create_ARIMA_summary_forecast_state(df_states,state_postal_code,days): # cas
     
     return actual_numbers
     
-# def dashboard_states(df_states,state_postal_code,days):
-#     '''
-#     *purpose: creates a SARIMA model based on datetime dataframe with column 'death'
-#               and a state postal code under column 'state'
+def create_SARIMAX_summary_forecast_state(df_states,state_postal_code,days): # create_SAX()
     
-#     *inputs:
-#     df_states: a dataframe of the state Covid data
-#     state_postal_code: state postal code to get state related death data
-#     days: number of days out you wish to forecast
-#     '''
-#     # create dataframe based on state_postal_code
-#     df_state = df_states[df_states['state']==state_postal_code]    
+    '''
+    *purpose: creates a SARIMAX model based on datetime dataframe with column 'death'
+              and a state postal code under column 'state' and uses holidays as an 
+              exogenous variable
+    
+    *inputs:
+    df_states: a dataframe of the state Covid data
+    state_postal_code: state postal code to get state related death data
+    days: number of days out you wish to forecast    
+    '''
+    df_state = df_states[df_states['state']==state_postal_code]    
 
-#     # sort index, lowest index to oldest date, drop na's in death column
-#     df_state = df_state.sort_index()
-#     df_state = df_state.dropna(subset=['death'])
-#     df_state_new = pd.DataFrame(df_state)
+    # sort index, lowest index to oldest date, drop na's in death column
+    df_state = df_state.sort_index()
+    df_state = df_state.dropna(subset=['death'])
+    df_state_new = pd.DataFrame(df_state)
 
-#     # create stepwise fit model, see summary
-#     stepwise_fit = auto_arima(df_state_new['death'],start_p=0,start_q=0,max_p=10,
-#                               max_q=10, seasonal=True, maxiter=1000, method='bfgs',
-#                               n_jobs=-1,stepwise=True) 
+    ets_decomp = sd(df_state_new['death'])
+    ets_decomp.plot();
 
-#     # auto_arima automatically differences and returns that differencing for the model in the arima_order = stepwise_fit.order below
-#     ## find correct ARIMA order
+    # create stepwise fit model, see summary
+    stepwise_fit = auto_arima(df_state_new['death'],seasonal=True,m=52)
 
-#     arima_order = stepwise_fit.order
+    # auto_arima automatically differences and returns that differencing for the model in the arima_order = stepwise_fit.order below
+    ## find correct ARIMA order
 
-#     length = len(df_state_new)-days
+    arima_order = stepwise_fit.order
+    seasonal_order = stepwise_fit.seasonal_order
 
-#     train_data = df_state_new.iloc[:length]
-#     test_data = df_state_new.iloc[length:]
+    length = len(df_state_new)-days
 
-#     model = sm.tsa.statespace.SARIMAX(train_data['death'],trend='ct', order=arima_order)
-#     res = model.fit(disp=False)
+    train_data = df_state_new.iloc[:length]
+    test_data = df_state_new.iloc[length:]
 
-#     start = len(train_data)
-#     end = len(train_data) + len(test_data) - 1
+    model = sm.tsa.statespace.SARIMAX(train_data['death'], trend='ct', seasonal_order=seasonal_order, 
+                                      order=arima_order, enforce_invertibility=False)
+    res = model.fit()
 
-#     predictions_state = res.predict(start,end,typ='endogenous').rename(f'SARIMA{arima_order} Predictions')
+    start = len(train_data)
+    end = len(train_data) + len(test_data) - 1
 
-#     # ensure predictions are in DataFrame format, label index as date to match df_alaska
-#     # predictions_state = pd.DataFrame(predictions_state)
-#     predictions_state.index.name = 'date'
+    predictions_state = res.predict(start,end,dynamic=False).rename(f'SARIMAX{arima_order} Predictions')
 
-#     train_data.index.freq = 'D'
-#     test_data.index.freq = 'D' # -1D is reverse index, ie most recent date is at top of dataframe
-#     # perform sort_index on dataframe to correct. set frequencies to match for plotting
-#     # on same visualization
+    # ensure predictions are in DataFrame format, label index as date to match df_alaska
+    predictions_state = pd.DataFrame(predictions_state)
+    predictions_state.index.name = 'date'
 
-#     # plotly express graph here - {PLOT}
-#     # graph test vs. prediction data - {PLOT}
-#     legend_elements = [Line2D([0], [0], color='b', lw=4, label='Actual Deaths'),
-#                        Line2D([0], [0], color='#FFA500', lw=4, label=f'SARIMA{arima_order} Predictions')]
+    train_data.index.freq = 'D'
+    test_data.index.freq = 'D' # -1D is reverse index, ie most recent date is at top of dataframe
+    # perform sort_index on dataframe to correct. set frequencies to match for plotting
+    # on same visualization
 
-#     fig, ax = plt.subplots(figsize=(20,10));
-#     ax.plot(test_data['death'])
-#     ax.plot(predictions_state);
-#     ax.grid(b=True,alpha=.5)
-#     plt.title(f'Test Data vs SARIMA, {state_postal_code}')
-#     ax.legend(handles=legend_elements)
-#     plt.xlabel('Date')
-#     plt.ylabel('Deaths')
-#     plt.show();
+    # graph test vs. prediction data - {PLOT}
+    legend_elements = [Line2D([0], [0], color='b', lw=4, label='Actual Deaths'),
+                       Line2D([0], [0], color='#FFA500', lw=4, label=f'SARIMA{arima_order} Predictions')]
 
-#     # train model for forecast
-#     model = sm.tsa.statespace.SARIMAX(df_state['death'],trend='ct', order=arima_order)
-#     res = model.fit(disp=False)
+    fig, ax = plt.subplots(figsize=(20,10));
+    ax.plot(test_data['death'])
+    ax.plot(predictions_state);
+    ax.grid(b=True,alpha=.5)
+    plt.title(f'Test Data vs SARIMA, {state_postal_code}')
+    ax.legend(handles=legend_elements)
+    for x in test_data.index:
+        if test_data['holiday'].loc[x]==1:    # for days where holiday == 1
+            ax.axvline(x=x, color='red', alpha = 0.4);   
+    plt.xlabel('Date')
+    plt.ylabel('Deaths')
+    plt.show();
 
-#     # create forecast
-#     fcast = res.predict(start=len(df_state_new),end=len(df_state_new)+days, typ='endogenous').rename(f'SARIMA{arima_order} {days} Days Forecast')
+    error1 = mse(test_data['death'], predictions_state)
+    error2 = rmse(test_data['death'], predictions_state)
 
-#     # graph forecast deaths, breakout of train and test split is present in graph - {PLOT}
-#     legend_elements = [Line2D([0], [0], color='b', lw=5, label='Actual Deaths'),
-#                        Line2D([0], [0], color='#FFA500', lw=5, label='Actual Deaths'),
-#                        Line2D([0], [0], color='g', lw=5, label=f'SARIMA{arima_order} Predictions'),
-#                        Line2D([0], [0], color='r', lw=5, label=f'SARIMA{arima_order} {days} Day Forecast')]
+    # print(f'SARIMAX{arima_order}{seasonal_order} MSE Error: {error1}')
+    # print(f'SARIMAX{arima_order}{seasonal_order} RMSE Error: {error2}')
 
-#     fig, ax = plt.subplots(figsize=(20,10));
-#     ax.plot(train_data['death'])
-#     ax.plot(test_data['death'])
-#     ax.plot(predictions_state)
-#     ax.plot(fcast)
-#     ax.grid(b=True,alpha=.5)
-#     plt.title(f'SARIMA {days} Day Forecast, {state_postal_code}')
-#     ax.legend(handles=legend_elements)
-#     plt.xlabel('Date')
-#     plt.ylabel('Deaths')
-#     plt.show();
-   
+    # train model for forecast
+    model = sm.tsa.statespace.SARIMAX(df_state_new['death'],exog=df_state_new['holiday'],
+                                      order=arima_order, seasonal_order=seasonal_order,
+                                      enforce_invertibility=False)
+    res = model.fit(disp=False)
 
-def create_ARIMA_summary_forecast_USA(df_states,days):
+    # create forecast
+    exog_forecast = df_state_new[length:][['holiday']]
+    fcast = res.predict(start=len(df_state_new),end=len(df_state_new)+days-1,exog=exog_forecast).rename(f'SARIMAX{arima_order},{seasonal_order} {days} Days Forecast')
+
+    # graph forecast deaths, breakout of train and test split is present in graph - {PLOT}
+    legend_elements = [Line2D([0], [0], color='b', lw=5, label='Actual Deaths'),
+                       Line2D([0], [0], color='#FFA500', lw=5, label='Actual Deaths'),
+                       Line2D([0], [0], color='g', lw=5, label=f'SARIMAX{arima_order},{seasonal_order} Predictions'),
+                       Line2D([0], [0], color='r', lw=5, label=f'SARIMAX{arima_order},{seasonal_order} {days} Day Forecast')]
+
+    fig, ax = plt.subplots(figsize=(20,10));
+    ax.plot(train_data['death'])
+    ax.plot(test_data['death'])
+    ax.plot(predictions_state)
+    ax.plot(fcast)
+    ax.grid(b=True,alpha=.5)
+    plt.title(f'SARIMAX {days} Day Forecast, {state_postal_code}')
+    ax.legend(handles=legend_elements)
+    for x in df_state_new.index:
+        if df_state_new['holiday'].loc[x]==1:    # for days where holiday == 1
+            ax.axvline(x=x, color='red', alpha = 0.4);   
+    plt.xlabel('Date')
+    plt.ylabel('Deaths')
+    plt.show();
+
+    last_predictions = len(fcast)-5
+    actual_numbers = fcast[last_predictions:]
+
+    return actual_numbers
+    
+def create_SARIMA_summary_forecast_usa(df_states,days): # cas_usa()
     
     '''
     *purpose: creates a SARIMA model based on datetime dataframe with column 'death'
@@ -336,6 +361,115 @@ def create_ARIMA_summary_forecast_USA(df_states,days):
     last_predictions = len(fcast)-5
     actual_numbers = fcast[last_predictions:]
     
+    return actual_numbers
+
+def create_SARIMAX_summary_forecast_usa(df_states,days): # create_SAX_usa()
+    
+    '''
+    *purpose: creates a SARIMAX model based on datetime dataframe with column 'death'
+              and uses holidays as an exogenous variable
+    
+    *inputs:
+    df_states: a dataframe of the state Covid data
+    days: number of days out you wish to forecast    
+    '''
+    # sort index, lowest index to oldest date, drop na's in death column
+    df_states = df_states.sort_index()
+    df_states = df_states.dropna(subset=['death'])
+    df_state_new = pd.DataFrame(df_states)
+
+    ets_decomp = sd(df_state_new['death'])
+    ets_decomp.plot();
+
+    # create stepwise fit model, see summary
+    stepwise_fit = auto_arima(df_state_new['death'],seasonal=True,m=52)
+
+    # auto_arima automatically differences and returns that differencing for the model in the arima_order = stepwise_fit.order below
+    ## find correct ARIMA order
+
+    arima_order = stepwise_fit.order
+    seasonal_order = stepwise_fit.seasonal_order
+
+    length = len(df_state_new)-days
+
+    train_data = df_state_new.iloc[:length]
+    test_data = df_state_new.iloc[length:]
+
+    model = sm.tsa.statespace.SARIMAX(train_data['death'], trend='ct', seasonal_order=seasonal_order, 
+                                      order=arima_order, enforce_invertibility=False)
+    res = model.fit()
+
+    start = len(train_data)
+    end = len(train_data) + len(test_data) - 1
+
+    predictions_state = res.predict(start,end,dynamic=False).rename(f'SARIMAX{arima_order} Predictions')
+
+    # ensure predictions are in DataFrame format, label index as date to match df_alaska
+    predictions_state = pd.DataFrame(predictions_state)
+    predictions_state.index.name = 'date'
+
+    train_data.index.freq = 'D'
+    test_data.index.freq = 'D' # -1D is reverse index, ie most recent date is at top of dataframe
+    # perform sort_index on dataframe to correct. set frequencies to match for plotting
+    # on same visualization
+
+    # graph test vs. prediction data - {PLOT}
+    legend_elements = [Line2D([0], [0], color='b', lw=4, label='Actual Deaths'),
+                       Line2D([0], [0], color='#FFA500', lw=4, label=f'SARIMA{arima_order} Predictions')]
+
+    fig, ax = plt.subplots(figsize=(20,10));
+    ax.plot(test_data['death'])
+    ax.plot(predictions_state);
+    ax.grid(b=True,alpha=.5)
+    plt.title(f'Test Data vs SARIMA, USA')
+    ax.legend(handles=legend_elements)
+    for x in test_data.index:
+        if test_data['holiday'].loc[x]==1:    # for days where holiday == 1
+            ax.axvline(x=x, color='red', alpha = 0.4);   
+    plt.xlabel('Date')
+    plt.ylabel('Deaths')
+    plt.show();
+
+    error1 = mse(test_data['death'], predictions_state)
+    error2 = rmse(test_data['death'], predictions_state)
+
+    # print(f'SARIMAX{arima_order}{seasonal_order} MSE Error: {error1}')
+    # print(f'SARIMAX{arima_order}{seasonal_order} RMSE Error: {error2}')
+
+    # train model for forecast
+    model = sm.tsa.statespace.SARIMAX(df_state_new['death'],exog=df_state_new['holiday'],
+                                      order=arima_order, seasonal_order=seasonal_order,
+                                      enforce_invertibility=False)
+    res = model.fit(disp=False)
+
+    # create forecast
+    exog_forecast = df_state_new[length:][['holiday']]
+    fcast = res.predict(start=len(df_state_new),end=len(df_state_new)+days-1,exog=exog_forecast).rename(f'SARIMAX{arima_order},{seasonal_order} {days} Days Forecast')
+
+    # graph forecast deaths, breakout of train and test split is present in graph - {PLOT}
+    legend_elements = [Line2D([0], [0], color='b', lw=5, label='Actual Deaths'),
+                       Line2D([0], [0], color='#FFA500', lw=5, label='Actual Deaths'),
+                       Line2D([0], [0], color='g', lw=5, label=f'SARIMAX{arima_order},{seasonal_order} Predictions'),
+                       Line2D([0], [0], color='r', lw=5, label=f'SARIMAX{arima_order},{seasonal_order} {days} Day Forecast')]
+
+    fig, ax = plt.subplots(figsize=(20,10));
+    ax.plot(train_data['death'])
+    ax.plot(test_data['death'])
+    ax.plot(predictions_state)
+    ax.plot(fcast)
+    ax.grid(b=True,alpha=.5)
+    plt.title(f'SARIMAX {days} Day Forecast, USA')
+    ax.legend(handles=legend_elements)
+    for x in df_state_new.index:
+        if df_state_new['holiday'].loc[x]==1:    # for days where holiday == 1
+            ax.axvline(x=x, color='red', alpha = 0.4);   
+    plt.xlabel('Date')
+    plt.ylabel('Deaths')
+    plt.show();
+
+    last_predictions = len(fcast)-5
+    actual_numbers = fcast[last_predictions:]
+
     return actual_numbers
     
 def create_NN_predict(df_states,state_postal_code,days,epochs):
@@ -427,6 +561,97 @@ def create_NN_predict(df_states,state_postal_code,days,epochs):
     plt.show();    
     
     
+    
+    # def dashboard_states(df_states,state_postal_code,days):
+#     '''
+#     *purpose: creates a SARIMA model based on datetime dataframe with column 'death'
+#               and a state postal code under column 'state'
+    
+#     *inputs:
+#     df_states: a dataframe of the state Covid data
+#     state_postal_code: state postal code to get state related death data
+#     days: number of days out you wish to forecast
+#     '''
+#     # create dataframe based on state_postal_code
+#     df_state = df_states[df_states['state']==state_postal_code]    
+
+#     # sort index, lowest index to oldest date, drop na's in death column
+#     df_state = df_state.sort_index()
+#     df_state = df_state.dropna(subset=['death'])
+#     df_state_new = pd.DataFrame(df_state)
+
+#     # create stepwise fit model, see summary
+#     stepwise_fit = auto_arima(df_state_new['death'],start_p=0,start_q=0,max_p=10,
+#                               max_q=10, seasonal=True, maxiter=1000, method='bfgs',
+#                               n_jobs=-1,stepwise=True) 
+
+#     # auto_arima automatically differences and returns that differencing for the model in the arima_order = stepwise_fit.order below
+#     ## find correct ARIMA order
+
+#     arima_order = stepwise_fit.order
+
+#     length = len(df_state_new)-days
+
+#     train_data = df_state_new.iloc[:length]
+#     test_data = df_state_new.iloc[length:]
+
+#     model = sm.tsa.statespace.SARIMAX(train_data['death'],trend='ct', order=arima_order)
+#     res = model.fit(disp=False)
+
+#     start = len(train_data)
+#     end = len(train_data) + len(test_data) - 1
+
+#     predictions_state = res.predict(start,end,typ='endogenous').rename(f'SARIMA{arima_order} Predictions')
+
+#     # ensure predictions are in DataFrame format, label index as date to match df_alaska
+#     # predictions_state = pd.DataFrame(predictions_state)
+#     predictions_state.index.name = 'date'
+
+#     train_data.index.freq = 'D'
+#     test_data.index.freq = 'D' # -1D is reverse index, ie most recent date is at top of dataframe
+#     # perform sort_index on dataframe to correct. set frequencies to match for plotting
+#     # on same visualization
+
+#     # plotly express graph here - {PLOT}
+#     # graph test vs. prediction data - {PLOT}
+#     legend_elements = [Line2D([0], [0], color='b', lw=4, label='Actual Deaths'),
+#                        Line2D([0], [0], color='#FFA500', lw=4, label=f'SARIMA{arima_order} Predictions')]
+
+#     fig, ax = plt.subplots(figsize=(20,10));
+#     ax.plot(test_data['death'])
+#     ax.plot(predictions_state);
+#     ax.grid(b=True,alpha=.5)
+#     plt.title(f'Test Data vs SARIMA, {state_postal_code}')
+#     ax.legend(handles=legend_elements)
+#     plt.xlabel('Date')
+#     plt.ylabel('Deaths')
+#     plt.show();
+
+#     # train model for forecast
+#     model = sm.tsa.statespace.SARIMAX(df_state['death'],trend='ct', order=arima_order)
+#     res = model.fit(disp=False)
+
+#     # create forecast
+#     fcast = res.predict(start=len(df_state_new),end=len(df_state_new)+days, typ='endogenous').rename(f'SARIMA{arima_order} {days} Days Forecast')
+
+#     # graph forecast deaths, breakout of train and test split is present in graph - {PLOT}
+#     legend_elements = [Line2D([0], [0], color='b', lw=5, label='Actual Deaths'),
+#                        Line2D([0], [0], color='#FFA500', lw=5, label='Actual Deaths'),
+#                        Line2D([0], [0], color='g', lw=5, label=f'SARIMA{arima_order} Predictions'),
+#                        Line2D([0], [0], color='r', lw=5, label=f'SARIMA{arima_order} {days} Day Forecast')]
+
+#     fig, ax = plt.subplots(figsize=(20,10));
+#     ax.plot(train_data['death'])
+#     ax.plot(test_data['death'])
+#     ax.plot(predictions_state)
+#     ax.plot(fcast)
+#     ax.grid(b=True,alpha=.5)
+#     plt.title(f'SARIMA {days} Day Forecast, {state_postal_code}')
+#     ax.legend(handles=legend_elements)
+#     plt.xlabel('Date')
+#     plt.ylabel('Deaths')
+#     plt.show();
+       
     
 # def create_VARMAX_summary_forecast_state(df_states,state_postal_code,days):
     
