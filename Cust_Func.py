@@ -118,7 +118,7 @@ def create_SARIMA_summary_forecast_state(df_states,state_postal_code,days): # ca
 
     # graph test vs. prediction data - {PLOT}
     legend_elements = [Line2D([0], [0], color='b', lw=4, label='Actual Deaths'),
-                       Line2D([0], [0], color='#FFA500', lw=4, label=f'SARIMA{arima_order} Predictions')]
+                       Line2D([0], [0], color='#FFA500', lw=4, label=f'SARIMA {arima_order} Predictions')]
 
     fig, ax = plt.subplots(figsize=(20,10));
     ax.plot(test_data['death'])
@@ -135,13 +135,13 @@ def create_SARIMA_summary_forecast_state(df_states,state_postal_code,days): # ca
     res = model.fit(disp=False)
 
     # create forecast
-    fcast = res.predict(start=len(df_state_new),end=len(df_state_new)+days, typ='endogenous').rename(f'SARIMA{arima_order} {days} Days Forecast')
+    fcast = res.predict(start=len(df_state_new),end=len(df_state_new)+days, typ='endogenous').rename(f'SARIMA {arima_order} {days} Days Forecast')
 
     # graph forecast deaths, breakout of train and test split is present in graph - {PLOT}
     legend_elements = [Line2D([0], [0], color='b', lw=5, label='Actual Deaths'),
                        Line2D([0], [0], color='#FFA500', lw=5, label='Actual Deaths'),
-                       Line2D([0], [0], color='g', lw=5, label=f'SARIMA{arima_order} Predictions'),
-                       Line2D([0], [0], color='r', lw=5, label=f'SARIMA{arima_order} {days} Day Forecast')]
+                       Line2D([0], [0], color='g', lw=5, label=f'SARIMA {arima_order} Predictions'),
+                       Line2D([0], [0], color='r', lw=5, label=f'SARIMA {arima_order} {days} Day Forecast')]
 
     fig, ax = plt.subplots(figsize=(20,10));
     ax.plot(train_data['death'])
@@ -179,8 +179,8 @@ def create_SARIMAX_summary_forecast_state(df_states,state_postal_code,days): # c
     df_state = df_state.dropna(subset=['death'])
     df_state_new = pd.DataFrame(df_state)
 
-    ets_decomp = sd(df_state_new['death'])
-    ets_decomp.plot();
+#     ets_decomp = sd(df_state_new['death'])
+#     ets_decomp.plot();
 
     # create stepwise fit model, see summary
     stepwise_fit = auto_arima(df_state_new['death'],seasonal=True,m=52)
@@ -203,7 +203,7 @@ def create_SARIMAX_summary_forecast_state(df_states,state_postal_code,days): # c
     start = len(train_data)
     end = len(train_data) + len(test_data) - 1
 
-    predictions_state = res.predict(start,end,dynamic=False).rename(f'SARIMAX{arima_order} Predictions')
+    predictions_state = res.predict(start,end,dynamic=False).rename(f'SARIMAX {arima_order} Predictions')
 
     # ensure predictions are in DataFrame format, label index as date to match df_alaska
     predictions_state = pd.DataFrame(predictions_state)
@@ -216,7 +216,7 @@ def create_SARIMAX_summary_forecast_state(df_states,state_postal_code,days): # c
 
     # graph test vs. prediction data - {PLOT}
     legend_elements = [Line2D([0], [0], color='b', lw=4, label='Actual Deaths'),
-                       Line2D([0], [0], color='#FFA500', lw=4, label=f'SARIMA{arima_order} Predictions')]
+                       Line2D([0], [0], color='#FFA500', lw=4, label=f'SARIMAX {arima_order} Predictions')]
 
     fig, ax = plt.subplots(figsize=(20,10));
     ax.plot(test_data['death'])
@@ -250,8 +250,8 @@ def create_SARIMAX_summary_forecast_state(df_states,state_postal_code,days): # c
     # graph forecast deaths, breakout of train and test split is present in graph - {PLOT}
     legend_elements = [Line2D([0], [0], color='b', lw=5, label='Actual Deaths'),
                        Line2D([0], [0], color='#FFA500', lw=5, label='Actual Deaths'),
-                       Line2D([0], [0], color='g', lw=5, label=f'SARIMAX{arima_order},{seasonal_order} Predictions'),
-                       Line2D([0], [0], color='r', lw=5, label=f'SARIMAX{arima_order},{seasonal_order} {days} Day Forecast')]
+                       Line2D([0], [0], color='g', lw=5, label=f'SARIMAX {arima_order} , {seasonal_order} Predictions'),
+                       Line2D([0], [0], color='r', lw=5, label=f'SARIMAX {arima_order} , {seasonal_order} {days} Day Forecast')]
 
     fig, ax = plt.subplots(figsize=(20,10));
     ax.plot(train_data['death'])
@@ -308,7 +308,7 @@ def create_SARIMA_summary_forecast_usa(df_states,days): # cas_usa()
     start = len(train_data)
     end = len(train_data) + len(test_data) - 1
 
-    predictions = res.predict(start,end,typ='endogenous').rename(f'SARIMAX{arima_order} Predictions')
+    predictions = res.predict(start,end,typ='endogenous').rename(f'SARIMAX {arima_order} Predictions')
 
     # ensure predictions are in DataFrame format, label index as date to match df_alaska
     predictions = pd.DataFrame(predictions)
@@ -321,7 +321,7 @@ def create_SARIMA_summary_forecast_usa(df_states,days): # cas_usa()
 
     # graph test vs. prediction data - {PLOT}
     legend_elements = [Line2D([0], [0], color='b', lw=4, label='Actual Deaths'),
-                       Line2D([0], [0], color='#FFA500', lw=4, label=f'SARIMA{arima_order} Predictions')]
+                       Line2D([0], [0], color='#FFA500', lw=4, label=f'SARIMA {arima_order} Predictions')]
 
     fig, ax = plt.subplots(figsize=(20,10));
     ax.plot(test_data['death'])
@@ -338,13 +338,13 @@ def create_SARIMA_summary_forecast_usa(df_states,days): # cas_usa()
     res = model.fit(disp=False)
 
     # create forecast
-    fcast = res.predict(start=len(df_state_new),end=len(df_state_new)+days, typ='endogenous').rename(f'SARIMAX{arima_order} Predictions')
+    fcast = res.predict(start=len(df_state_new),end=len(df_state_new)+days, typ='endogenous').rename(f'SARIMAX {arima_order} Predictions')
 
     # graph forecast deaths, breakout of train and test split is present in graph - {PLOT}
     legend_elements = [Line2D([0], [0], color='b', lw=5, label='Actual Deaths'),
                        Line2D([0], [0], color='#FFA500', lw=5, label='Actual Deaths'),
-                       Line2D([0], [0], color='g', lw=5, label=f'SARIMA{arima_order} Predictions'),
-                       Line2D([0], [0], color='r', lw=5, label=f'SARIMA{arima_order} {days} Day Forecast')]
+                       Line2D([0], [0], color='g', lw=5, label=f'SARIMA {arima_order} Predictions'),
+                       Line2D([0], [0], color='r', lw=5, label=f'SARIMA {arima_order} {days} Day Forecast')]
 
     fig, ax = plt.subplots(figsize=(20,10));
     ax.plot(train_data['death'])
@@ -378,8 +378,8 @@ def create_SARIMAX_summary_forecast_usa(df_states,days): # create_SAX_usa()
     df_states = df_states.dropna(subset=['death'])
     df_state_new = pd.DataFrame(df_states)
 
-    ets_decomp = sd(df_state_new['death'])
-    ets_decomp.plot();
+#     ets_decomp = sd(df_state_new['death'])
+#     ets_decomp.plot();
 
     # create stepwise fit model, see summary
     stepwise_fit = auto_arima(df_state_new['death'],seasonal=True,m=52)
@@ -402,7 +402,7 @@ def create_SARIMAX_summary_forecast_usa(df_states,days): # create_SAX_usa()
     start = len(train_data)
     end = len(train_data) + len(test_data) - 1
 
-    predictions_state = res.predict(start,end,dynamic=False).rename(f'SARIMAX{arima_order} Predictions')
+    predictions_state = res.predict(start,end,dynamic=False).rename(f'SARIMAX {arima_order} Predictions')
 
     # ensure predictions are in DataFrame format, label index as date to match df_alaska
     predictions_state = pd.DataFrame(predictions_state)
@@ -415,7 +415,7 @@ def create_SARIMAX_summary_forecast_usa(df_states,days): # create_SAX_usa()
 
     # graph test vs. prediction data - {PLOT}
     legend_elements = [Line2D([0], [0], color='b', lw=4, label='Actual Deaths'),
-                       Line2D([0], [0], color='#FFA500', lw=4, label=f'SARIMA{arima_order} Predictions')]
+                       Line2D([0], [0], color='#FFA500', lw=4, label=f'SARIMA {arima_order} Predictions')]
 
     fig, ax = plt.subplots(figsize=(20,10));
     ax.plot(test_data['death'])
@@ -449,8 +449,8 @@ def create_SARIMAX_summary_forecast_usa(df_states,days): # create_SAX_usa()
     # graph forecast deaths, breakout of train and test split is present in graph - {PLOT}
     legend_elements = [Line2D([0], [0], color='b', lw=5, label='Actual Deaths'),
                        Line2D([0], [0], color='#FFA500', lw=5, label='Actual Deaths'),
-                       Line2D([0], [0], color='g', lw=5, label=f'SARIMAX{arima_order},{seasonal_order} Predictions'),
-                       Line2D([0], [0], color='r', lw=5, label=f'SARIMAX{arima_order},{seasonal_order} {days} Day Forecast')]
+                       Line2D([0], [0], color='g', lw=5, label=f'SARIMAX {arima_order} , {seasonal_order} Predictions'),
+                       Line2D([0], [0], color='r', lw=5, label=f'SARIMAX {arima_order} , {seasonal_order} {days} Day Forecast')]
 
     fig, ax = plt.subplots(figsize=(20,10));
     ax.plot(train_data['death'])
@@ -562,7 +562,7 @@ def create_NN_predict(df_states,state_postal_code,days,epochs):
     
     
     
-    # def dashboard_states(df_states,state_postal_code,days):
+# def dashboard_states(df_states,state_postal_code,days):
 #     '''
 #     *purpose: creates a SARIMA model based on datetime dataframe with column 'death'
 #               and a state postal code under column 'state'
