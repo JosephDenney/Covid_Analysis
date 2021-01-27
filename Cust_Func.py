@@ -17,10 +17,10 @@ import plotly.express as px
 import plotly.io as pio
 pio.templates
 
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from keras.preprocessing.sequence import TimeseriesGenerator
 from keras.models import Sequential
-from keras.layers import Dense
+from keras.layers import Dense, Dropout
 from keras.layers import LSTM
 
 from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
@@ -560,6 +560,124 @@ def create_NN_predict(df_states,state_postal_code,days,epochs):
     plt.ylabel('Deaths')
     plt.show();    
     
+def multivariate_nn_forecast(df_states,days_to_train,days_to_forecast,epochs):
+    
+    '''
+    *purpose: creates a multivariate RNN model and graph forecast
+              based on datetime dataframe with column 'death'
+    
+    *inputs:
+    df_states: a dataframe of the US Covid data
+    days_to_train: number of past days to train on
+    days_to_forecast: number of days out you wish to forecast
+    epochs: number of epochs you wish to run
+    '''
+    
+    # remove extra, unnecessary columns 
+    df_states = df_states.sort_index()
+    df_states = df_states.drop(columns=['dateChecked','lastModified','hash',
+                                        'pending','hospitalizedCumulative',
+                                        'inIcuCumulative', 'onVentilatorCumulative',
+                                        'recovered','total','deathIncrease',
+                                        'hospitalized','hospitalizedIncrease',
+                                        'negativeIncrease','posNeg','positiveIncrease',
+                                        'states','totalTestResults','totalTestResultsIncrease',
+                                        'negative'])
+    
+    # drop rows where at least one element is missing
+    df_states = df_states.dropna() 
+    
+    # move death to first index position
+    df_states = df_states[['death','positive', 'hospitalizedCurrently', 'inIcuCurrently',
+                           'onVentilatorCurrently']] 
+
+    # drop all but those currently on ventilators and percentage testing positive out of total test pool
+    df_states = df_states.drop(columns=['positive','inIcuCurrently','hospitalizedCurrently'])
+    
+    # where to specificy the columns to use in multivariate NN
+    columns = list(df_states)[0:2]
+    print(columns) # variables, x axis is time
+    
+    # extract x axis dates for plotting certain graphs
+    X_axis_dates = pd.to_datetime(df_states.index)
+    
+    # create training df, ensure float data types
+    df_training = df_states[columns].astype(float)
+    
+    # scale the dataset
+    standard_scaler = StandardScaler()
+    standard_scaler.fit(df_training)
+    df_training_scaled = standard_scaler.transform(df_training)
+    
+    # create lists to append to
+    X_train = []
+    y_train = []
+    
+    # take in input arguments from function call
+    future_days = 1
+    past_days = days_to_train            # number of days to train the model on
+    
+    for i in range(past_days, len(df_training_scaled) - future_days + 1):
+        X_train.append(df_training_scaled[i-past_days:i, 0:df_training.shape[1]])
+        y_train.append(df_training_scaled[i+future_days-1:i+future_days,0])
+    
+    # set X_train and y_train data sets to numpy arrays
+    X_train, y_train = np.array(X_train), np.array(y_train)
+    
+    # save shapes of numpy arrays as variables
+    shapeX = X_train.shape
+    shapey = y_train.shape
+    
+    def make_model():
+        model = Sequential()
+        model.add(LSTM(100, activation='relu', return_sequences=True, 
+                       input_shape=(shapeX[1],shapeX[2])))
+        model.add(LSTM(50, activation='relu', return_sequences=False))
+        model.add(Dense(shapey[1]))
+        model.compile(optimizer='adam',loss='mse')
+        return model
+    
+    # instantiate model (make_model function is in this .py file) and fit
+    model = make_model()
+    history = model.fit(X_train, y_train, epochs=10, batch_size=32, validation_split=0.2, verbose=0)
+    
+    # create forecast data
+    days = days_to_forecast
+    forecast_dates = pd.date_range(list(X_axis_dates)[-1],periods=days,freq='D').tolist()
+    forecast = model.predict(X_train[-days:])
+
+    # create target future forecast data and inverse transform
+    forecast_columns = np.repeat(forecast, df_training_scaled.shape[1],axis=-1)
+    y_pred_future = standard_scaler.inverse_transform(forecast_columns)[:,0]
+
+    # append dates back into new dataframe
+    forecast_dates_array = []
+    for time in forecast_dates:
+        forecast_dates_array.append(time.date())
+
+    # create final forecast dataframe
+    df_fcast = []
+    df_fcast = pd.DataFrame({'date':np.array(forecast_dates_array),'death':y_pred_future})
+    df_fcast.index=pd.to_datetime(df_fcast['date'])
+
+    # plot the data and the forecast data
+    df_fcast['death'].plot(legend=True, figsize=(15,7));
+    (df_states['death']).plot(legend=True);
+    
+    
+def make_model():
+    # initialize and build sequential model
+    model = Sequential()
+
+    model.add(LSTM(100, activation='relu', return_sequences=True, 
+                   input_shape=(shapeX[1],shapeX[2])))
+    model.add(LSTM(50, activation='relu', return_sequences=False))
+    model.add(Dense(shapey[1]))
+
+    model.compile(optimizer='adam',loss='mse')
+    model.summary()
+    return model   
+
     
     
 # def dashboard_states(df_states,state_postal_code,days):
