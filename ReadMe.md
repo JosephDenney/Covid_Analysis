@@ -1,4 +1,4 @@
-# Covid-19 Deaths Forecasting
+# Covid-19 Deaths Forecasting - Work In Progress
 
 ![svg](img/tenor.gif)
 
@@ -22,43 +22,12 @@
 
 ## Description of Data
 
-
-
-## EDA and Preprocessing 
-
-
+## Notebook Table of Contents
 
 ### Supervised Learning SARIMA and SARIMAX
 
-
-![svg](Tweet_Analysis_files/Tweet_Analysis_100_1.png)
-
 ### Keras Recurrent Neural Network
 
-
-## Main Questions
-* Question 1:
-* Question 2:
-* Question 3:
-
-## Notebook Table of Contents
-### 1.1 Introduction
-### 1.2 Table of Contents
-### 1.3 EDA and Data Preprocessing
-### 1.4 Modeling
-
-## Summary Conclusions and Insights
-* Question 1 Answer: 
-* 
-
-* Question 2 Answer: 
-* 
-
-* Question 3 Answer: 
-*
-
-
 ## Future Work
-* 
 
 ### Thank you!
