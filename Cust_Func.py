@@ -36,6 +36,11 @@ from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 def adf_test(series, title=''):
     """
     Pass in a time series and an optional title, returns an ADF report
+    series: series of data
+        type: series or array    
+
+    returns an augmented dickey fuller test stating whether there is stationarity or not
+
     """
     print(f'Augmented Dickey-Fuller Test: {title}')
     result = adfuller(series.dropna(),autolag='AIC') # .dropna() handles differenced data
@@ -54,43 +59,23 @@ def adf_test(series, title=''):
     else:
         print("Fail to reject the null hypothesis",'\n')
         print("Data has a unit root and is non-stationary")
-        
 
-## please give some feedback on this one regarding the .drop method to drop specific columns that I am using to make the df a little more manageable - is that ridiculous or appropriate code?
-
-def sort_and_clean_df(dataframe, target_column, percent_data_threshold): # sort_df()
+def sort_and_clean_df(dataframe, target_columns, percent_data_threshold=1): # sort_df()
     """ 
     *purpose: Pass in dataframe and threshold percent as a decimal, returns a dataframe based on that threshold
+              - if threshold is not specified the function will use a threshold of 1 and keep all columns
     
     *inputs:
     dataframe: dataframe
-    target_column: target column in string format
+    target_column: target columns in a list, columns that you specifically want to keep. 
+        leave threshold at default 1 if you know which specific columns you wish to keep
     percent_data_missing_threshold: desired threshold expressed in decimal form
-        eg. .05 = 5%  this would result in columns missing 5% or more of their data as NaN to be removed from the dataframe
-            .10 = 10% this would result in columns missing 10% or more of their data as NaN to be removed from the dataframe
-    
-    """
-    dataframe = dataframe.drop(columns=['pending', 'totalTestResultsSource', 
-        'totalTestResults', 'hospitalizedCurrently',
-        'hospitalizedCumulative', 'inIcuCurrently', 'inIcuCumulative',
-        'onVentilatorCumulative', 'recovered',
-        'dataQualityGrade', 'lastUpdateEt', 'dateModified', 'checkTimeEt',
-        'hospitalized', 'dateChecked', 'totalTestsViral',
-        'positiveTestsViral', 'negativeTestsViral', 'positiveCasesViral',
-        'deathProbable', 'totalTestEncountersViral',
-        'totalTestsPeopleViral', 'totalTestsAntibody', 'positiveTestsAntibody',
-        'negativeTestsAntibody', 'totalTestsPeopleAntibody',
-        'positiveTestsPeopleAntibody', 'negativeTestsPeopleAntibody',
-        'totalTestsPeopleAntigen', 'positiveTestsPeopleAntigen',
-        'totalTestsAntigen', 'positiveTestsAntigen', 'fips', 'positiveIncrease',
-        'negativeIncrease', 'total', 'totalTestResultsIncrease', 'posNeg',
-        'deathIncrease', 'hospitalizedIncrease', 'hash', 'commercialScore',
-        'negativeRegularScore', 'negativeScore', 'positiveScore', 'score',
-        'grade'])
 
-    dataframe['onVentilatorCurrently'] = dataframe['onVentilatorCurrently'].fillna(0)
-    dataframe['death'] = dataframe['death'].fillna(0)
-    dataframe['negative'] = dataframe['negative'].fillna(0)
+    *outputs: a new dataframe with no NaN values and desired columns. 
+    """
+
+    # create dataframe with target_columns passed in list form
+    dataframe = dataframe[target_columns]
 
     # calculate threshold as a percent of dataframe
     threshold_num = len(dataframe)*percent_data_threshold
@@ -99,13 +84,9 @@ def sort_and_clean_df(dataframe, target_column, percent_data_threshold): # sort_
 
     return dataframe
 
-
-## concerned here that there is not enough code in here but it does serve its purpose to work on a state specific df
-
 def state_dataframe(dataframe, state_postal_code):
-
     ''' 
-    Notes: function assumes all state and US data are seasonal on a weekly basis, but can be specified. if data has no seasonality, use return_arima_order()
+    *Notes: function assumes all state and US data are seasonal on a weekly basis, but can be specified. if data has no seasonality, use return_arima_order()
     
     *inputs:
     dataframe: a dataframe of the state Covid data
@@ -115,6 +96,7 @@ def state_dataframe(dataframe, state_postal_code):
    
     *outputs: returns state specific dataframe to work with
     '''
+
     # create dataframe based on state_postal_code
     dataframe = dataframe[dataframe['state']==state_postal_code]
     dataframe = pd.DataFrame(dataframe)
@@ -123,14 +105,11 @@ def state_dataframe(dataframe, state_postal_code):
     dataframe = dataframe.sort_index()
     dataframe.index.freq = 'D'
     
-#     if verbose:
-#         display(dataframe.head())
-#     else:
     print(f"Successfully returned indexed dataframe for {state_postal_code}")
     
     return dataframe
 
-def return_arima_order(dataframe, target_column, days, m_periods=52, seasonal=True, exogenous_column=None):
+def return_arima_order(dataframe, target_column, train_days, m_periods=1, exogenous_column=None):
     ''' 
     Notes: returns stepwise_fit wrapper with arima order and seasonal arima orders
     
@@ -139,23 +118,28 @@ def return_arima_order(dataframe, target_column, days, m_periods=52, seasonal=Tr
         type = dataframe
     target_column: target column in string format
         type = str
-    days: number of days into the future you wish to forecast
-        type = int
-    m_periods: seasonality frequency (12 for monthly seasonality, 52 for weekly seasonality, etc
+    m_periods: seasonality frequency. freq of DF is 1D, or 1 day intervals. set m to number of days it takes to complete one cycle of seasonality, or leave to default
+        type= int
+    train_days: number of days you wish to train on
         type = int
     seasonal: if the data appears to be seasonal, set seasonal to True
         type = bool
     *exogenous_column: name of exogenous column data
         type = str
-    *seasonal_arima_order: if trend is seasonal, include seasonal arima order from stepwise_fit.seasonal_order
-        type = tuple
-   
+
     *outputs: returns arima order and seasonal arima order
     '''
-    trailing_6_months = -180
+    # number of days to train on
+    train_days = -train_days
 
-    # create model fit, see summary
-    stepwise_fit = auto_arima(dataframe.iloc[trailing_6_months:][target_column],start_p=0,start_q=0,max_p=10,max_q=10,seasonal=seasonal, method='lbfgs', n_jobs=-1,stepwise=True,m=m_periods)
+    # specify seasonal data mased on m_periods value
+    if m_periods >= 2:
+        seasonal=True
+    else: 
+        seasonal=False
+
+    # run auto arima, seasonal determined by m_periods entered
+    stepwise_fit = auto_arima(dataframe.iloc[train_days:][target_column],start_P=0,start_Q=0,start_p=0,start_q=0,max_p=10,max_q=10,seasonal=seasonal, method='lbfgs', n_jobs=-1,stepwise=True,m=m_periods)
     
     arima_order = stepwise_fit.order
     sarima_order = stepwise_fit.seasonal_order
@@ -170,7 +154,7 @@ def return_arima_order(dataframe, target_column, days, m_periods=52, seasonal=Tr
     
     return stepwise_fit
 
-def return_sarima_model(dataframe, target_column, days, m_periods=52, seasonal=True, exogenous_column=None, seasonal_arima_order=None):
+def return_sarimax_model(dataframe, target_column, days_to_forecast, train_days, m_periods=1, exogenous_column=None):
     ''' 
     Notes: function assumes all state and US data are seasonal on a weekly basis, but can be set to None if the state data does not
     appear to be seasonal. Additionally, auto_ARIMA is calculating based on a trailing 6 month period.
@@ -180,7 +164,9 @@ def return_sarima_model(dataframe, target_column, days, m_periods=52, seasonal=T
         type = dataframe
     target_column: target column in string format
         type = str
-    days: number of days into the future you wish to forecast
+    days_to_forecast: number of days into the future you wish to forecast
+        type = int
+    train_days: number of days to train auto_arima on
         type = int
     m_periods: seasonality frequency (12 for monthly seasonality, 52 for weekly seasonality, etc
         type = int
@@ -188,44 +174,51 @@ def return_sarima_model(dataframe, target_column, days, m_periods=52, seasonal=T
         type = bool
     *exogenous_column: name of exogenous column data
         type = str
-    *seasonal_arima_order: if trend is seasonal, include seasonal arima order from stepwise_fit.seasonal_order
-        type = tuple
    
     *outputs: returns arima order and seasonal arima order and a corresponding model
     '''
-    trailing_6_months = -180
+    # number of days to train on
+    train_days = -train_days
 
     # create model fit, see summary
-    stepwise_fit = auto_arima(dataframe.iloc[trailing_6_months:][target_column],start_p=0,start_q=0,max_p=10,max_q=10,seasonal=seasonal, method='lbfgs', n_jobs=-1,stepwise=True,m=m_periods)
+    if m_periods >= 2:
+        seasonal=True
+    else: 
+        seasonal=False
+
+    # run auto arima, seasonal determined by m_periods entered
+    stepwise_fit = auto_arima(dataframe.iloc[train_days:][target_column],start_P=0,start_Q=0,start_p=0,start_q=0,max_p=10,max_q=10,seasonal=seasonal, method='lbfgs', n_jobs=-1,stepwise=True,m=m_periods)
     
     arima_order = stepwise_fit.order
     sarima_order = stepwise_fit.seasonal_order
 
-    print("ARIMA order is: ", stepwise_fit.order)
-    
+    # print notes on arima order and sarima order
+    print("ARIMA order is: ", stepwise_fit.order)    
     if seasonal is not None:
         print("Seasonal ARIMA order is: ", stepwise_fit.seasonal_order)
     else: 
         pass
+    # further instructions
     print("Use ARIMA object stepwise_fit to store ARIMA and seasonal ARIMA orders in variables.")
 
+    # create length variable and then train data. test data is not necessary here, but is defined
     length = len(dataframe)-days
     train_data = dataframe.iloc[:length]
+    test_dataa = dataframe.iloc[length:]
 
-    # train data model
+    # training data model
     if exogenous_column is None: 
-        model = SARIMAX(train_data[target_column], trend='ct', order=stepwise_fit.order, seasonal_order=stepwise_fit.seasonal_order, m=m_periods)
+        model = SARIMAX(train_data[target_column], order=stepwise_fit.order, seasonal_order=stepwise_fit.seasonal_order, m=m_periods, enforce_invertibility=False, enforce_stationarity=False)
     else: 
-        model = SARIMAX(train_data[target_column], exogenous=train_data[exogenous_column], trend='ct', order=stepwise_fit.order, seasonal_order=stepwise_fit.seasonal_order, m=m_periods)
+        model = SARIMAX(train_data[target_column], exogenous=train_data[exogenous_column], order=stepwise_fit.order, seasonal_order=stepwise_fit.seasonal_order, m=m_periods, enforce_invertibility=False, enforce_stationarity=False)
     
     # instantiate fit model for train_data
     results = model.fit()
     
+    # return stepwise_fit and results (actual model)
     return stepwise_fit, results
-
-##  this builds the test vs. prediction model, but it required external code in my notebook to get a graphed result. 
     
-def evaluate_predictions(model, dataframe, target_column, days, stepwise_fit, m_periods=52, exogenous_column=None, seasonal_arima_order=None):
+def evaluate_predictions(model, dataframe, target_column, days, stepwise_fit, alpha, exogenous_column=None):
     '''
     #purpose: creates a SARIMA or SARIMAX model based on datetime dataframe with any target column
     must specify arima_order at least, but seasonal_arima_order is optional
@@ -240,14 +233,14 @@ def evaluate_predictions(model, dataframe, target_column, days, stepwise_fit, m_
         type = int
     stepwise_fit = arima order from stepwise_fit.order
         type = wrapper
-    m_periods: periods in season
+    alpha: allows to set confidence interval
+        type = float less than 1
     *exogenous_column: name of exogenous column data
         type = str
-    *seasonal_arima_order: if trend is seasonal, include seasonal arima order from stepwise_fit.seasonal_order
-        type = tuple
         
-    #outputs: train data, test data, prediction data (to evaluate against test data), and forecast data 
+    #outputs: a graphic evaluation of the (actual) test vs predicted values of the model
     '''
+    # create length variable and then train/test data
     length = len(dataframe)-days
     train_data = dataframe.iloc[:length]
     test_data = dataframe.iloc[length:]
@@ -257,27 +250,31 @@ def evaluate_predictions(model, dataframe, target_column, days, stepwise_fit, m_
     end = len(train_data) + len(test_data) - 1
 
     if exogenous_column is not None:
-        predictions = model.predict(start,end,typ='exogenous').rename(f'SARIMAX{stepwise_fit.order} Predictions')
+        predictions = model.get_prediction(start,end,typ='exogenous')
     elif exogenous_column is None:
-        predictions = model.predict(start,end,typ='endogenous').rename(f'SARIMAX{stepwise_fit.order} Predictions')
-    # ensure predictions are in DataFrame format, label index as date to match
-    predictions.index.name = 'date'
-    
+        predictions = model.get_prediction(start,end,typ='endogenous')
+
+    # create plot_df for graphing
+    upper_lower = predictions.conf_int(alpha=alpha)
+    plot_df = predictions.conf_int(alpha=alpha)
+    plot_df['Predictions'] = predictions.predicted_mean
+
     # create graph - {PLOT}
-    fig = plt.figure(figsize=(14,8));
-    df_plot = train_data.iloc[(dataframe.index.argmax()-200):(dataframe.index.argmax())][target_column]
-#     .plot(figsize=(12,5),legend=True,title='Test Data vs. Predictions');
-    plt.plot(df_plot,label='Training Data');
-    test_data[target_column].plot(legend=True,label='Test Data'); 
-    predictions.plot(legend=True, label='SARIMA Predictions'); 
-    plt.title(f'Test Data vs. Predictions, {target_column}');
-    plt.ylabel('Number of People');
-    plt.legend();
-    plt.show();
+    ax = plot_df['Predictions'].plot(label='Prediction', figsize=(16,8))
+    # plot_df['Predictions'].plot(ax=ax, label='Confidence Interval')
+    dataframe.iloc[-200:][target_column].plot(label='Currently on Ventilator'); 
+    ax.fill_between(upper_lower.index,
+                    upper_lower.iloc[:, 0],
+                    upper_lower.iloc[:, 1], color='k', alpha=0.15)
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Number of People')
+    # ax.title(f'Number of {target_column}')
+    plt.legend()
+    plt.show(); 
     
     return None
 
-def build_SARIMAX_forecast(dataframe, target_column, days, stepwise_fit, m_periods=52, original_df=None, exogenous_column=None):
+def build_SARIMAX_forecast(dataframe, target_column, days, stepwise_fit, alpha, original_df=None, exogenous_column=None):
     '''
     #purpose: creates a SARIMA or SARIMAX model based on datetime dataframe with any target column
     must specify arima_order at least, but seasonal_arima_order is optional
@@ -291,80 +288,64 @@ def build_SARIMAX_forecast(dataframe, target_column, days, stepwise_fit, m_perio
         type = int
     stepwise_fit = arima order from stepwise_fit.order
         type = tuple
-    m_periods: periods in season
+    alpha: allows to set confidence interval
+        type = float less than 1
     *exogenous_column: name of exogenous column data
         
-    #outputs: forecast data and graph
+    #outputs: two object outputs, a fit model called results_forecast and forecast object containing predictions as well as a forecast graph
     '''
-    # build full dataframe model
+    # create appropriate length start and end for get_prediction below based on whether or not an exogenous set of data is being used
+    if original_df is None:
+        start = len(dataframe)
+        end = len(dataframe)+days
+    elif original_df is not None:
+        start = len(original_df)
+        end = len(original_df)+days
+
+    # build full dataframe model given exogenous data, or not
     if exogenous_column is None:
-        model = SARIMAX(dataframe[target_column],trend='ct', order=stepwise_fit.order, seasonal_order=stepwise_fit.seasonal_order)
-    else: 
-        model = SARIMAX(dataframe[target_column],exog=dataframe[exogenous_column], trend='ct', order=stepwise_fit.order, seasonal_order=stepwise_fit.seasonal_order)
-    
-    # new results forecast, use this to get predictions
-    results_forecast = model.fit()
-    
-    # create forecast
-    if exogenous_column is None:
-        forecast = results_forecast.predict(start=len(original_df),end=len(original_df)+days, typ='endogenous').rename(f'SARIMAX {stepwise_fit.order} {days} Days Forecast')
+        exog=None
     else:
-        forecast = results_forecast.predict(start=len(original_df),end=len(original_df)+days, typ='exogenous').rename(f'SARIMAX {stepwise_fit.order} {days} Days Forecast')
+        exog=dataframe[exogenous_column]
 
-    # get forecast for confidence interval results forecast model    
+    model = SARIMAX(dataframe[target_column], exog=exog, order=stepwise_fit.order, seasonal_order=stepwise_fit.seasonal_order,enforce_invertibility=False,enforce_stationarity=False)
+    
+    # fit SARIMAX model
+    results_forecast = model.fit(disp=False)
+    
+    # create forecast object
     if exogenous_column is None:
-        forecast_object = results_forecast.get_forecast(steps=days) 
-    else:    
-        forecast_object = results_forecast.get_forecast(steps=days, exog=original_df.iloc[-days:][exogenous_column])
-        
-    #create forecast interval
-    forecast_interval = forecast_object.conf_int(alpha=.05)
-    predicted_mean = forecast_object.predicted_mean
-
-    if exogenous_column is None: # create graph - {PLOT}
-        fig = plt.figure(figsize=(14,7));
-        df_plot = original_df.iloc[(original_df.index.argmax()-200):(original_df.index.argmax())][target_column]
-        plt.plot(df_plot,label=f'{target_column}');
-        forecast.plot(legend=True, label='SARIMA Forecast'); 
-        plt.title(f'Forecast, {target_column}');
-        plt.ylabel('Number of People');
-        plt.legend();
-        plt.show();
-    elif exogenous_column is not None: # create graph - {PLOT}
-        fig = plt.figure(figsize=(14,7));
-        df_plot = dataframe.iloc[(dataframe.index.argmax()-(200+days):(dataframe.index.argmax()-days)][target_column]
-        plt.plot(df_plot,label=f'{target_column}');
-        dataframe.iloc[(dataframe.index.argmax()-200):(dataframe.index.argmax())][exogenous_column].plot()
-        forecast.plot(legend=True, label='SARIMA Forecast'); 
-        plt.title(f'Forecast, {target_column}');
-        plt.ylabel('Number of People');
-        plt.legend();
-        plt.show();
-    
-    if original_df is not None:
-        fig2 = plt.figure(figsize=(14,7));
-        ax = original_df['death'].plot(label='Observed', figsize=(14,7))
-        predicted_mean.plot(ax=ax, label='Forecast')
-        ax.fill_between(forecast_interval.index,
-                        forecast_interval.iloc[:, 0],
-                        forecast_interval.iloc[:, 1], color='k', alpha=0.15)
-        ax.set_xlabel('Date')
-        ax.set_ylabel('Deaths')
-#         plt.title('Covid-19 Deaths Forecast')
-        plt.legend()
-        plt.show()
+        forecast_object = results_forecast.get_prediction(start,end,typ='endogenous')
     else:
-        pass
+        forecast_object = results_forecast.get_prediction(start,end,typ='exogenous')
     
-    return forecast, results_forecast # returns model forecast data
+    # build confidence intervals and predicted mean line in one df
+    upper_lower = forecast_object.conf_int(alpha=alpha)
+    plot_df = forecast_object.conf_int(alpha=alpha)
+    plot_df['Forecast'] = forecast_object.predicted_mean
 
-def get_exogenous_forecast_dataframe(dataframe, original_dataframe, forecast, target_column, exogenous_column, days):
+    ax = plot_df['Forecast'].plot(label='Forecast', figsize=(16,8))
+    dataframe.iloc[100:][target_column].plot(); 
+    ax.fill_between(upper_lower.index,
+                    upper_lower.iloc[:, 0],
+                    upper_lower.iloc[:, 1], color='k', alpha=0.15)
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Number of People')
+    plt.legend()
+    plt.show(); 
+    
+    return results_forecast, forecast_object # returns model forecast data
+
+def get_exogenous_forecast_dataframe(dataframe, original_dataframe, exog_forecast, target_column, exogenous_column, days):
     '''
     #purpose: to create a forecast dataframe with forecasted exogenous data
         
     dataframe: a dataframe of the state Covid data
         type = dataframe
     original_dataframe: a reference dataframe that is the same as dataframe but will remain static within function
+        type = dataframe
+    exog_forecast = predicted forecast for the exogenous variable
+        type = pandas series
     target_column: column to forecast trend
         type = str
     *exogenous_column: name of exogenous column data
@@ -374,10 +355,8 @@ def get_exogenous_forecast_dataframe(dataframe, original_dataframe, forecast, ta
     (see return_arima_order():)
     (see build_SARIMAX_forecast():)
     
-    output: graph of ventilator or death data vs model prediction
+    output: arima object and new dataframe that will go into build_SARIMAX_forecast():
     '''
-    # tuple unpacking
-    forecast, y = forecast
     
     # create extended index for dataframe
     today = datetime.date(datetime.now())
@@ -397,15 +376,6 @@ def get_exogenous_forecast_dataframe(dataframe, original_dataframe, forecast, ta
     seasonal_order = stepwise_fit.seasonal_order
   
     return stepwise_fit, dataframe
-
-#     x_forecast = build_SARIMAX_forecast(dataframe,target_column,exogenous_column=exogenous_column,days=days,stepwise_fit=stepwise_fit)
-    
-#     model = x_forecast.fit()
-    
-#     start = len(alaska_df)
-#     end = len(alaska_df) + days
-
-#     forecast_object = model.get_forecast(steps=days)
     
 def plot_SARIMAX_forecast():
     pass
