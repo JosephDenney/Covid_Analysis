@@ -249,10 +249,10 @@ def evaluate_predictions(model, dataframe, target_column, days, stepwise_fit, al
     start = len(train_data)
     end = len(train_data) + len(test_data) - 1
 
-    if exogenous_column is not None:
-        predictions = model.get_prediction(start,end,typ='exogenous')
-    elif exogenous_column is None:
+    if exogenous_column is None:
         predictions = model.get_prediction(start,end,typ='endogenous')
+    else:
+        predictions = model.get_prediction(start,end,typ='exogenous')
 
     # create plot_df for graphing
     upper_lower = predictions.conf_int(alpha=alpha)
@@ -308,6 +308,7 @@ def build_SARIMAX_forecast(dataframe, target_column, days, stepwise_fit, alpha, 
     else:
         exog=dataframe[exogenous_column]
 
+    # build model
     model = SARIMAX(dataframe[target_column], exog=exog, order=stepwise_fit.order, seasonal_order=stepwise_fit.seasonal_order,enforce_invertibility=False,enforce_stationarity=False)
     
     # fit SARIMAX model
