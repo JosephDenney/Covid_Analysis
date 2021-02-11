@@ -96,7 +96,6 @@ def state_dataframe(dataframe, state_postal_code):
    
     *outputs: returns state specific dataframe to work with
     '''
-
     # create dataframe based on state_postal_code
     dataframe = dataframe[dataframe['state']==state_postal_code]
     dataframe = pd.DataFrame(dataframe)
@@ -109,7 +108,7 @@ def state_dataframe(dataframe, state_postal_code):
     
     return dataframe
 
-def return_arima_order(dataframe, target_column, train_days, m_periods=1, exogenous_column=None):
+def return_arima_order(dataframe, target_column, days_to_forecast=30, train_days=270, m_periods=1, exogenous_column=None):
     ''' 
     Notes: returns stepwise_fit wrapper with arima order and seasonal arima orders
     
@@ -138,23 +137,25 @@ def return_arima_order(dataframe, target_column, train_days, m_periods=1, exogen
     else: 
         seasonal=False
 
+    # create training data
+    ts = dataframe.iloc[-train_days:-days_to_forecast][target_column]
+    full_ts = dataframe.iloc[-train_days:][target_column]
+
     # run auto arima, seasonal determined by m_periods entered
-    stepwise_fit = auto_arima(dataframe.iloc[train_days:][target_column],start_P=0,start_Q=0,start_p=0,start_q=0,max_p=10,max_q=10,seasonal=seasonal, method='lbfgs', n_jobs=-1,stepwise=True,m=m_periods)
-    
-    arima_order = stepwise_fit.order
-    sarima_order = stepwise_fit.seasonal_order
+    # stepwise_fit = auto_arima(ts,start_P=0,start_Q=0,start_p=0,start_q=0,max_p=10,max_q=10,seasonal=seasonal, method='lbfgs', n_jobs=-1,stepwise=True,m=m_periods)
+    stepwise_full = auto_arima(full_ts,start_P=0,start_Q=0,start_p=0,start_q=0,max_p=10,max_q=10,seasonal=seasonal, method='lbfgs', n_jobs=-1,stepwise=True,m=m_periods)
 
-    print("ARIMA order is: ", stepwise_fit.order)
+    # print("ARIMA order is: ", stepwise_fit.order)
     
-    if seasonal is not None:
-        print("Seasonal ARIMA order is: ", stepwise_fit.seasonal_order)
-    else: 
-        pass
-    print("Use ARIMA object stepwise_fit to store ARIMA and seasonal ARIMA orders in variables.")
+    # if seasonal is not None:
+    #     print("Seasonal ARIMA order is: ", stepwise_fit.seasonal_order)
+    # else: 
+    #     pass
+    # print("Use ARIMA object stepwise_fit to store ARIMA and seasonal ARIMA orders in variables.")
     
-    return stepwise_fit
+    return stepwise_full
 
-def return_sarimax_model(dataframe, target_column, days_to_forecast, train_days, m_periods=1, exogenous_column=None):
+def arima_tune(dataframe, target_column, days_to_forecast=30, train_days=270, m_periods=1, exogenous_column=None, verbose=False):
     ''' 
     Notes: function assumes all state and US data are seasonal on a weekly basis, but can be set to None if the state data does not
     appear to be seasonal. Additionally, auto_ARIMA is calculating based on a trailing 6 month period.
@@ -168,26 +169,34 @@ def return_sarimax_model(dataframe, target_column, days_to_forecast, train_days,
         type = int
     train_days: number of days to train auto_arima on
         type = int
-    m_periods: seasonality frequency (12 for monthly seasonality, 52 for weekly seasonality, etc
+    m_periods: seasonality frequency (set m_periods to number of days per season since index.freq='D'
         type = int
     seasonal: if the data appears to be seasonal, set seasonal to True
         type = bool
     *exogenous_column: name of exogenous column data
         type = str
+    *verbose: bool, will return summary and qq plot if set to true
    
     *outputs: returns arima order and seasonal arima order and a corresponding model
     '''
-    # number of days to train on
-    train_days = -train_days
-
     # create model fit, see summary
     if m_periods >= 2:
         seasonal=True
     else: 
         seasonal=False
 
+    # create training data
+    ts = dataframe.iloc[-train_days:-days_to_forecast][target_column]
+    full_ts = dataframe.iloc[-train_days:][target_column]
+
+    if exogenous_column is None:
+        exog=None
+    else:
+        exog=dataframe[exogenous_column]
+
     # run auto arima, seasonal determined by m_periods entered
-    stepwise_fit = auto_arima(dataframe.iloc[train_days:][target_column],start_P=0,start_Q=0,start_p=0,start_q=0,max_p=10,max_q=10,seasonal=seasonal, method='lbfgs', n_jobs=-1,stepwise=True,m=m_periods)
+    stepwise_fit = auto_arima(ts,X=exog,start_P=0,start_Q=0,start_p=0,start_q=0,max_p=10,max_q=10,seasonal=seasonal, method='lbfgs', n_jobs=-1,stepwise=True,m=m_periods)
+    stepwise_fit_2 = auto_arima(full_ts,X=exog,start_P=0,start_Q=0,start_p=0,start_q=0,max_p=10,max_q=10,seasonal=seasonal, method='lbfgs', n_jobs=-1,stepwise=True,m=m_periods)
     
     arima_order = stepwise_fit.order
     sarima_order = stepwise_fit.seasonal_order
@@ -202,23 +211,34 @@ def return_sarimax_model(dataframe, target_column, days_to_forecast, train_days,
     print("Use ARIMA object stepwise_fit to store ARIMA and seasonal ARIMA orders in variables.")
 
     # create length variable and then train data. test data is not necessary here, but is defined
-    length = len(dataframe)-days
-    train_data = dataframe.iloc[:length]
-    test_dataa = dataframe.iloc[length:]
+    # length = len(dataframe)-days_to_forecast
+    # train_data = dataframe.iloc[:length]
+    # test_data = dataframe.iloc[length:]
 
     # training data model
     if exogenous_column is None: 
-        model = SARIMAX(train_data[target_column], order=stepwise_fit.order, seasonal_order=stepwise_fit.seasonal_order, m=m_periods, enforce_invertibility=False, enforce_stationarity=False)
+        model = SARIMAX(ts, order=stepwise_fit.order, seasonal_order=stepwise_fit.seasonal_order, m=m_periods, enforce_invertibility=False, enforce_stationarity=False)
     else: 
-        model = SARIMAX(train_data[target_column], exogenous=train_data[exogenous_column], order=stepwise_fit.order, seasonal_order=stepwise_fit.seasonal_order, m=m_periods, enforce_invertibility=False, enforce_stationarity=False)
+        model = SARIMAX(ts, exogenous=train_data[exogenous_column], order=stepwise_fit.order, seasonal_order=stepwise_fit.seasonal_order, m=m_periods, enforce_invertibility=False, enforce_stationarity=False)
     
+    # full data model
+    if exogenous_column is None: 
+        full_model = SARIMAX(full_ts, order=stepwise_fit.order, seasonal_order=stepwise_fit_2.seasonal_order, m=m_periods, enforce_invertibility=False, enforce_stationarity=False)
+    else: 
+        full_model = SARIMAX(full_ts, exogenous=dataframe[exogenous_column], order=stepwise_fit_2.order, seasonal_order=stepwise_fit.seasonal_order, m=m_periods, enforce_invertibility=False, enforce_stationarity=False)
+    results_full = full_model.fit()
+
     # instantiate fit model for train_data
     results = model.fit()
     
+    if verbose:
+        display(results.summary())
+        results.plot_diagnostics()
+
     # return stepwise_fit and results (actual model)
-    return stepwise_fit, results
+    return stepwise_fit, stepwise_fit_2, results, results_full
     
-def evaluate_predictions(model, dataframe, target_column, days, stepwise_fit, alpha, exogenous_column=None):
+def evaluate_predictions(model, dataframe, target_column, stepwise_fit, alpha, days_to_forecast=30, train_days=270, exogenous_column=None):
     '''
     #purpose: creates a SARIMA or SARIMAX model based on datetime dataframe with any target column
     must specify arima_order at least, but seasonal_arima_order is optional
@@ -229,7 +249,7 @@ def evaluate_predictions(model, dataframe, target_column, days, stepwise_fit, al
         type = dataframe
     target_column: column to forecast trend
         type = str
-    days: number of days into the future you wish to forecast
+    days_to_forecast: number of days into the future you wish to forecast
         type = int
     stepwise_fit = arima order from stepwise_fit.order
         type = wrapper
@@ -241,18 +261,20 @@ def evaluate_predictions(model, dataframe, target_column, days, stepwise_fit, al
     #outputs: a graphic evaluation of the (actual) test vs predicted values of the model
     '''
     # create length variable and then train/test data
-    length = len(dataframe)-days
-    train_data = dataframe.iloc[:length]
-    test_data = dataframe.iloc[length:]
+    length = train_days
+    train_data = dataframe.iloc[-length:-days_to_forecast+1]
+    test_data = dataframe.iloc[-days_to_forecast:] # fix to match train data from before
     
     # variables for start and end for predictions to evaluate against test data
     start = len(train_data)
     end = len(train_data) + len(test_data) - 1
 
     if exogenous_column is None:
-        predictions = model.get_prediction(start,end,typ='endogenous')
+        exog=None
     else:
-        predictions = model.get_prediction(start,end,typ='exogenous')
+        exog=dataframe[exogenous_column]
+
+    predictions = model.get_prediction(start,end,typ='exogenous',exog=exog)
 
     # create plot_df for graphing
     upper_lower = predictions.conf_int(alpha=alpha)
@@ -260,31 +282,33 @@ def evaluate_predictions(model, dataframe, target_column, days, stepwise_fit, al
     plot_df['Predictions'] = predictions.predicted_mean
 
     # create graph - {PLOT}
-    ax = plot_df['Predictions'].plot(label='Prediction', figsize=(16,8))
+    ax = plot_df['Predictions'].plot(label='Model Prediction', figsize=(16,8))
     # plot_df['Predictions'].plot(ax=ax, label='Confidence Interval')
-    dataframe.iloc[-200:][target_column].plot(label='Currently on Ventilator'); 
+    train_data.iloc[-days_to_forecast-30:][target_column].plot(label=f'{target_column}'); 
+    test_data[target_column].plot(label='Test Data'); 
     ax.fill_between(upper_lower.index,
                     upper_lower.iloc[:, 0],
                     upper_lower.iloc[:, 1], color='k', alpha=0.15)
     ax.set_xlabel('Date')
     ax.set_ylabel('Number of People')
-    # ax.title(f'Number of {target_column}')
+    ax.set_title(f'Number of {target_column}')
     plt.legend()
     plt.show(); 
     
     return None
 
-def build_SARIMAX_forecast(dataframe, target_column, days, stepwise_fit, alpha, original_df=None, exogenous_column=None):
+def build_SARIMAX_forecast(model, dataframe, target_column, stepwise_fit, alpha, days_to_forecast=30, original_df=None, exogenous_column=None):
     '''
     #purpose: creates a SARIMA or SARIMAX model based on datetime dataframe with any target column
     must specify arima_order at least, but seasonal_arima_order is optional
     
     #inputs:
+    model: model
     dataframe: a dataframe of the state Covid data
         type = dataframe
     target_column: column to forecast trend
         type = str
-    days: number of days into the future you wish to forecast
+    days_to_forecast: number of days into the future you wish to forecast
         type = int
     stepwise_fit = arima order from stepwise_fit.order
         type = tuple
@@ -297,47 +321,43 @@ def build_SARIMAX_forecast(dataframe, target_column, days, stepwise_fit, alpha, 
     # create appropriate length start and end for get_prediction below based on whether or not an exogenous set of data is being used
     if original_df is None:
         start = len(dataframe)
-        end = len(dataframe)+days
+        end = len(dataframe)+days_to_forecast
     elif original_df is not None:
         start = len(original_df)
-        end = len(original_df)+days
+        end = len(original_df)+days_to_forecast
 
     # build full dataframe model given exogenous data, or not
     if exogenous_column is None:
         exog=None
     else:
-        exog=dataframe[exogenous_column]
-
-    # build model
-    model = SARIMAX(dataframe[target_column], exog=exog, order=stepwise_fit.order, seasonal_order=stepwise_fit.seasonal_order,enforce_invertibility=False,enforce_stationarity=False)
-    
-    # fit SARIMAX model
-    results_forecast = model.fit(disp=False)
+        exog=dataframe.iloc[-days_to_forecast:][exogenous_column]
     
     # create forecast object
     if exogenous_column is None:
-        forecast_object = results_forecast.get_prediction(start,end,typ='endogenous')
+        forecast_object = model.get_forecast(steps=days_to_forecast)
     else:
-        forecast_object = results_forecast.get_prediction(start,end,typ='exogenous')
+        forecast_object = model.get_forecast(steps=days_to_forecast, exog=exog)
     
     # build confidence intervals and predicted mean line in one df
     upper_lower = forecast_object.conf_int(alpha=alpha)
     plot_df = forecast_object.conf_int(alpha=alpha)
     plot_df['Forecast'] = forecast_object.predicted_mean
+    forecast = forecast_object.predicted_mean
 
     ax = plot_df['Forecast'].plot(label='Forecast', figsize=(16,8))
-    dataframe.iloc[100:][target_column].plot(); 
+    dataframe.iloc[-200:][target_column].plot(); 
     ax.fill_between(upper_lower.index,
                     upper_lower.iloc[:, 0],
                     upper_lower.iloc[:, 1], color='k', alpha=0.15)
     ax.set_xlabel('Date')
-    ax.set_ylabel('Number of People')
+    ax.set_ylabel(f'Number of People, {target_column}')
+    ax.set_title(f'Covid-19 {target_column.upper()} Forecast')
     plt.legend()
     plt.show(); 
     
-    return results_forecast, forecast_object # returns model forecast data
+    return forecast, forecast_object # returns model forecast data
 
-def get_exogenous_forecast_dataframe(dataframe, original_dataframe, exog_forecast, target_column, exogenous_column, days):
+def get_exogenous_forecast_dataframe(dataframe, original_dataframe, exog_forecast, target_column, exogenous_column, days_to_forecast=30, m_periods=1):
     '''
     #purpose: to create a forecast dataframe with forecasted exogenous data
         
@@ -361,7 +381,7 @@ def get_exogenous_forecast_dataframe(dataframe, original_dataframe, exog_forecas
     
     # create extended index for dataframe
     today = datetime.date(datetime.now())
-    td = timedelta(days=days)
+    td = timedelta(days=days_to_forecast-1)
     future_date = today+td
     rng = pd.date_range(dataframe.index.min(),future_date,freq='D')
     
@@ -370,16 +390,63 @@ def get_exogenous_forecast_dataframe(dataframe, original_dataframe, exog_forecas
     dataframe = dataframe.set_index(rng)
     
     # fill exogenous column with forecast data
-    dataframe[exogenous_column] = dataframe[exogenous_column].fillna(forecast)
+    dataframe[exogenous_column] = dataframe[exogenous_column].fillna(exog_forecast)
     
-    stepwise_fit = return_arima_order(dataframe.iloc[0:len(original_dataframe)], target_column, days)
+    stepwise_fit = return_arima_order(dataframe.iloc[0:len(original_dataframe)], target_column, days_to_forecast, m_periods=m_periods)
     arima_order = stepwise_fit.order
     seasonal_order = stepwise_fit.seasonal_order
   
     return stepwise_fit, dataframe
     
-def plot_SARIMAX_forecast():
-    pass
+def create_exog_forecast(dataframe, target_column, alpha=.05, days_to_forecast=30, train_days=270, m_periods=1, state_postal_code=None, verbose=True):
+
+    if state_postal_code is None:     
+        dataframe.sort_index()
+        dataframe.index.freq = 'D'
+        original_dataframe = dataframe
+    else:
+        dataframe = state_dataframe(dataframe, state_postal_code)
+        original_dataframe = dataframe
+
+    # return arima model 'results_full'
+    stepwise_fit, stepwise_full, results, results_full = arima_tune(dataframe, target_column, days_to_forecast=days_to_forecast, train_days=train_days, m_periods=m_periods, verbose=True)
+    #
+    exog_forecast, results_forecast = build_SARIMAX_forecast(model=results_full, 
+                                                             dataframe=dataframe, 
+                                                             target_column=target_column, 
+                                                             stepwise_fit=stepwise_full, 
+                                                             alpha=alpha, days_to_forecast=days_to_forecast, 
+                                                             original_df=None, exogenous_column=None)
+    
+    return dataframe, exog_forecast
+        
+def graph_exog_forecast(dataframe, target_column, exog_forecast, df_ref, alpha=.05, days_to_forecast=30, train_days=270, m_periods=1, exogenous_column=None):
+    
+    if exogenous_column is not None:
+        stepwise_fit, df_forecast = get_exogenous_forecast_dataframe(dataframe=dataframe,
+                                                                 original_dataframe=df_ref, 
+                                                                 exog_forecast=exog_forecast, 
+                                                                 target_column=target_column, 
+                                                                 exogenous_column=exogenous_column, 
+                                                                 days_to_forecast=days_to_forecast,
+                                                                 m_periods=m_periods)
+    
+    full_exog_model = SARIMAX(dataframe[target_column],dataframe[exogenous_column],
+                              order=stepwise_fit.order,
+                              seasonal_order=stepwise_fit.seasonal_order)
+    
+    model = full_exog_model.fit()
+
+    exog_forecast, forecast_object = build_SARIMAX_forecast(model=model, 
+                                                             dataframe=df_forecast, 
+                                                             target_column=target_column, 
+                                                             stepwise_fit=stepwise_fit, 
+                                                             alpha=alpha, 
+                                                             days_to_forecast=days_to_forecast, 
+                                                             original_df=df_ref, 
+                                                             exogenous_column=exogenous_column)
+    
+    return None
     
  # def graph_predictions(model, dataframe, target_column, days, stepwise_fit):
 #     '''
