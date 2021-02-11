@@ -297,7 +297,7 @@ def evaluate_predictions(model, dataframe, target_column, stepwise_fit, alpha, d
     
     return None
 
-def build_SARIMAX_forecast(model, dataframe, target_column, stepwise_fit, alpha, days_to_forecast=30, original_df=None, exogenous_column=None):
+def build_SARIMAX_forecast(model, dataframe, target_column, stepwise_fit, alpha, days_to_forecast=30, original_df=None, exogenous_column=None, state_postal_code=None):
     '''
     #purpose: creates a SARIMA or SARIMAX model based on datetime dataframe with any target column
     must specify arima_order at least, but seasonal_arima_order is optional
@@ -351,7 +351,7 @@ def build_SARIMAX_forecast(model, dataframe, target_column, stepwise_fit, alpha,
                     upper_lower.iloc[:, 1], color='k', alpha=0.15)
     ax.set_xlabel('Date')
     ax.set_ylabel(f'Number of People, {target_column}')
-    ax.set_title(f'Covid-19 {target_column.upper()} Forecast')
+    ax.set_title(f'Covid-19 {target_column.upper()} Forecast for {state_postal_code}')
     plt.legend()
     plt.show(); 
     
