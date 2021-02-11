@@ -399,7 +399,9 @@ def get_exogenous_forecast_dataframe(dataframe, original_dataframe, exog_forecas
     return stepwise_fit, dataframe
     
 def create_exog_forecast(dataframe, target_column, alpha=.05, days_to_forecast=30, train_days=270, m_periods=1, state_postal_code=None, verbose=True):
-
+    '''
+    summary function that returns a new dataframe as well as a forecast that will become the exogenous variable in the graph_exog_forecast function
+    '''
     if state_postal_code is None:     
         dataframe.sort_index()
         dataframe.index.freq = 'D'
@@ -421,7 +423,9 @@ def create_exog_forecast(dataframe, target_column, alpha=.05, days_to_forecast=3
     return dataframe, exog_forecast
         
 def graph_exog_forecast(dataframe, target_column, exog_forecast, df_ref, alpha=.05, days_to_forecast=30, train_days=270, m_periods=1, exogenous_column=None):
-    
+    '''
+    summary function whose purpose is to graph a target_column's forecast
+    '''
     if exogenous_column is not None:
         stepwise_fit, df_forecast = get_exogenous_forecast_dataframe(dataframe=dataframe,
                                                                  original_dataframe=df_ref, 
@@ -446,7 +450,7 @@ def graph_exog_forecast(dataframe, target_column, exog_forecast, df_ref, alpha=.
                                                              original_df=df_ref, 
                                                              exogenous_column=exogenous_column)
     
-    return None
+    return forecast_object
     
  # def graph_predictions(model, dataframe, target_column, days, stepwise_fit):
 #     '''
