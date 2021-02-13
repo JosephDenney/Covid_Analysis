@@ -60,7 +60,7 @@ def adf_test(series, title=''):
         print("Fail to reject the null hypothesis",'\n')
         print("Data has a unit root and is non-stationary")
 
-def sort_and_clean_df(dataframe, target_columns, percent_data_threshold=1): # sort_df()
+def sort_and_clean_df(dataframe, target_columns, percent_data_threshold=1, US_df=False): # sort_df()
     """ 
     *purpose: Pass in dataframe and threshold percent as a decimal, returns a dataframe based on that threshold
               - if threshold is not specified the function will use a threshold of 1 and keep all columns
@@ -81,6 +81,10 @@ def sort_and_clean_df(dataframe, target_columns, percent_data_threshold=1): # so
     threshold_num = len(dataframe)*percent_data_threshold
     dataframe = dataframe.dropna(axis=1,thresh=len(dataframe)-threshold_num)
     dataframe = dataframe.fillna(0)
+    dataframe = dataframe.sort_index()
+    
+    if US_df == True:
+        dataframe.index.freq = 'D'
 
     return dataframe
 
@@ -297,6 +301,24 @@ def evaluate_predictions(model, dataframe, target_column, stepwise_fit, alpha, d
     
     return None
 
+def do_not_allow_decrease(series, reached_max_value=None):
+    ''' 
+    purpose of function is to keep certain values from falling below zero. 
+    '''
+    max_value=series.max()
+    location_of_max=series.argmax()
+    
+    for idx in series.index:
+        if series[idx]==max_value:
+            new_i = max_value
+            reached_max_value=1
+        elif reached_max_value is not None:
+            series[idx] = new_i
+        else:
+            pass
+            
+    return series
+
 def build_SARIMAX_forecast(model, dataframe, target_column, stepwise_fit, alpha, days_to_forecast=30, original_df=None, exogenous_column=None, state_postal_code=None):
     '''
     #purpose: creates a SARIMA or SARIMAX model based on datetime dataframe with any target column
@@ -340,9 +362,22 @@ def build_SARIMAX_forecast(model, dataframe, target_column, stepwise_fit, alpha,
     
     # build confidence intervals and predicted mean line in one df
     upper_lower = forecast_object.conf_int(alpha=alpha)
-    plot_df = forecast_object.conf_int(alpha=alpha)
-    plot_df['Forecast'] = forecast_object.predicted_mean
-    forecast = forecast_object.predicted_mean
+    upper_lower.columns = ['lower','upper']
+
+    # wrote function to customize forecast and remove the possibility for a negative forecast in deaths when death is the target forecast column
+    if target_column == 'death':
+        lower = pd.Series(upper_lower['lower'])
+        lower = do_not_allow_decrease(lower)
+        plot_df = forecast_object.conf_int(alpha=alpha)
+        plot_df.columns = ['lower','upper']
+        plot_df['lower'] = lower
+        plot_df['Forecast'] = forecast_object.predicted_mean
+        forecast = forecast_object.predicted_mean
+    else:
+        plot_df = forecast_object.conf_int(alpha=alpha)
+        plot_df.columns = ['lower','upper']
+        plot_df['Forecast'] = forecast_object.predicted_mean
+        forecast = forecast_object.predicted_mean
 
     ax = plot_df['Forecast'].plot(label='Forecast', figsize=(16,8))
     dataframe.iloc[-200:][target_column].plot(); 
@@ -350,10 +385,17 @@ def build_SARIMAX_forecast(model, dataframe, target_column, stepwise_fit, alpha,
                     upper_lower.iloc[:, 0],
                     upper_lower.iloc[:, 1], color='k', alpha=0.15)
     ax.set_xlabel('Date')
-    ax.set_ylabel(f'Number of People, {target_column}')
-    ax.set_title(f'Covid-19 {target_column.upper()} Forecast for {state_postal_code}')
-    plt.legend()
-    plt.show(); 
+
+    if state_postal_code is None:
+        ax.set_ylabel(f'Number of People, {target_column}')
+        ax.set_title(f'Covid-19 {target_column.upper()} Forecast')
+        plt.legend()
+        plt.show();                             
+    elif state_postal_code is not None:
+        ax.set_ylabel(f'Number of People, {target_column}')
+        ax.set_title(f'Covid-19 {target_column.upper()} Forecast, {state_postal_code}')
+        plt.legend()
+        plt.show(); 
     
     return forecast, forecast_object # returns model forecast data
 
@@ -403,8 +445,6 @@ def create_exog_forecast(dataframe, target_column, alpha=.05, days_to_forecast=3
     summary function that returns a new dataframe as well as a forecast that will become the exogenous variable in the graph_exog_forecast function
     '''
     if state_postal_code is None:     
-        dataframe.sort_index()
-        dataframe.index.freq = 'D'
         original_dataframe = dataframe
     else:
         dataframe = state_dataframe(dataframe, state_postal_code)
@@ -412,7 +452,7 @@ def create_exog_forecast(dataframe, target_column, alpha=.05, days_to_forecast=3
 
     # return arima model 'results_full'
     stepwise_fit, stepwise_full, results, results_full = arima_tune(dataframe, target_column, days_to_forecast=days_to_forecast, train_days=train_days, m_periods=m_periods, verbose=True)
-    #
+    
     exog_forecast, results_forecast = build_SARIMAX_forecast(model=results_full, 
                                                              dataframe=dataframe, 
                                                              target_column=target_column, 
@@ -422,7 +462,7 @@ def create_exog_forecast(dataframe, target_column, alpha=.05, days_to_forecast=3
     
     return dataframe, exog_forecast
         
-def graph_exog_forecast(dataframe, target_column, exog_forecast, df_ref, alpha=.05, days_to_forecast=30, train_days=270, m_periods=1, exogenous_column=None):
+def graph_exog_forecast(dataframe, target_column, exog_forecast, df_ref, alpha=.05, days_to_forecast=30, train_days=270, m_periods=1, exogenous_column=None, state_postal_code=None):
     '''
     summary function whose purpose is to graph a target_column's forecast
     '''
@@ -448,7 +488,8 @@ def graph_exog_forecast(dataframe, target_column, exog_forecast, df_ref, alpha=.
                                                              alpha=alpha, 
                                                              days_to_forecast=days_to_forecast, 
                                                              original_df=df_ref, 
-                                                             exogenous_column=exogenous_column)
+                                                             exogenous_column=exogenous_column,
+                                                             state_postal_code=state_postal_code)
     
     return forecast_object    
 
