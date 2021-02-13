@@ -35,10 +35,16 @@
 ##### 3.3 Future Work
 
 ### Supervised Learning with SARIMA and SARIMAX 
-#### United States Summary Forecasts
+
+#### California Summary Forecast
+
+![svg](Covid_Notebook_files/Covid_Notebook_106_0.png)
+##### California Covid-19 Deaths Forecast first forecasts the number of individuals with Covid who are in the ICU, then creates a SARIMAX model and forecast of deaths based on that forecast data.
+
+#### United States Summary Forecast
 
 ![svg](Covid_Notebook_files/Covid_Notebook_154_0.png)
-##### United States Covid-19 Deaths Forecast first forecasts the number of currently hospitalized individuals with Covid, then creates a SARIMAX model and forecast based on that forecast data in addition to the data for deaths. 
+##### United States Covid-19 Deaths Forecast first forecasts the number of currently hospitalized individuals with Covid, then creates a SARIMAX model and forecast of deaths based on that forecast data.
 
 ## Summary Recommendations
 ##### * WEAR A MASK
