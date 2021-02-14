@@ -47,8 +47,8 @@
 ##### United States Covid-19 Deaths Forecast first forecasts the number of currently hospitalized individuals with Covid, then creates a SARIMAX model and forecast of deaths based on that forecast data.
 
 ## Summary Recommendations
-##### * WEAR A MASK
-##### * STAY AWAY FROM PEOPLE YOU DON'T LIVE WITH
+##### * Wear a mask
+##### * Stay away from people you don't live with
 ##### * Respect others' right to not catch the virus you might not know you have.
 
 ## Future Work
@@ -57,7 +57,7 @@
 
 ### A note about this project:
 ##### I chose to undertake this project for several reasons. It is relevant to what is happening now, and it has real implications in peoples' lives. On a much more personal level, it is frustrating to have three grandparents in their 90's whom I am unable to see at this time. Additionally, my mother has an auto-immune deficiency, which makes her risk around irresponsible individuals that much more real for me. 
-##### Most people seem to be respectful enough to wear a mask, but after nearly a year many are growing tired of this simple task. I hope that respect for others will prevail over the desire for 'personal freedom'. The covenant that we enter into as citizens is with each other. It's to protect each other, and it requires that we be considerate and understand that one person's wants (the desire to not wear a mask, to party, to have a good time) do not supercede the responsibility to protect our fellow Americans. 
-##### Furthermore, the argument for personal freedom is in this case ridiculous - it's like arguing that one should have the personal freedom to walk around committing acts of violence that endanger others. With vaccine distribution occurring, we don't have much longer to endure the difficulties. 
+##### Most people seem to be respectful enough to wear a mask, but after nearly a year many are growing tired of this simple task. I hope that respect for others will prevail over the desire for personal freedom. The covenant that we enter into as citizens is with each other. It's to protect each other, and it requires that we be considerate and understand that one person's wants (the desire to not wear a mask, to party, to have a good time) do not supercede the responsibility to protect our fellow Americans. 
+##### With vaccine distribution occurring, we don't have much longer to endure the difficulties. 
 
 ### Thank you!
