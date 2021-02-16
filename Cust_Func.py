@@ -380,7 +380,7 @@ def build_SARIMAX_forecast(model, dataframe, target_column, stepwise_fit, alpha,
         forecast = forecast_object.predicted_mean
 
     ax = plot_df['Forecast'].plot(label='Forecast', figsize=(16,8))
-    dataframe.iloc[-200:][target_column].plot(); 
+    dataframe.iloc[-240:][target_column].plot(); 
     ax.fill_between(upper_lower.index,
                     upper_lower.iloc[:, 0],
                     upper_lower.iloc[:, 1], color='k', alpha=0.15)
@@ -423,7 +423,7 @@ def get_exogenous_forecast_dataframe(dataframe, original_dataframe, exog_forecas
     
     # create extended index for dataframe
     today = datetime.date(datetime.now())
-    td = timedelta(days=days_to_forecast-1)
+    td = timedelta(days=days_to_forecast-4)
     future_date = today+td
     rng = pd.date_range(dataframe.index.min(),future_date,freq='D')
     
