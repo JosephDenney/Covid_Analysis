@@ -8,7 +8,7 @@
 
 ### Problem and Purpose
 
-#### This project will use forecasting to model Covid-19 deaths  based on current hospitalization, ventilator, and death data. I will be using API html links to bring in up to date data regularly. This project will use supervised learning in the form of ARIMA and SARIMAX in order to create time series death forecasts.
+#### This project will use forecasting to model Covid-19 deaths  based on current hospitalization, ventilator, and death data. I will be using API html links to bring in up to date data regularly. This project will use supervised learning in the form of SARIMA and SARIMAX in order to create time series death forecasts.
 
 #### The purpose of this analysis is to provide an accurate forecast of Covid-19 related deaths as 2021 progresses.
 #### Our challenges are -
@@ -16,7 +16,33 @@
 #### * 2. Build a forecast for the United States as a whole
 #### * 3. Provide insights as to the urgency of making changes to how we are operating as a country
 
-## Table of Contents
+### The Data
+#### The Covid Tracking Project was organized by the news agency The Atlantic early in 2020 in an effort to provide as much data on the pandemic as possible. Coordination of state by state Covid data required building working relationships with state officials to obtain relevant state information. Above are links to the project that can provide further information regarding Covid-19. Additionally, it is worth noting that the project is coming to its end at the beginning of March 2021 as a result of improvements to Federal collection of data. 
+
+
+```python
+import webbrowser
+
+if open_links == True:
+    webbrowser.open("https://covidtracking.com/")
+    webbrowser.open("https://covidtracking.com/data/api")
+```
+
+### Chosen States
+
+### Custom Libraries
+
+
+```python
+# %load_ext autoreload
+# %autoreload 2
+# %reload_ext autoreload
+from Cust_Func import *
+```
+
+    The autoreload extension is already loaded. To reload it, use:
+      %reload_ext autoreload
+    
 
 ### Standard Libraries
 
@@ -85,18 +111,6 @@ standard_scaler = StandardScaler()
 
 ### Custom Libraries
 
-
-```python
-%load_ext autoreload
-%autoreload 2
-%reload_ext autoreload
-from Cust_Func import *
-```
-
-    The autoreload extension is already loaded. To reload it, use:
-      %reload_ext autoreload
-    
-
 ## Explore Data
 
 ### Create New DataFrame
@@ -108,19 +122,8 @@ open_links = False
 
 
 ```python
-import webbrowser
-
-if open_links == True:
-    webbrowser.open("https://covidtracking.com/")
-    webbrowser.open("https://covidtracking.com/data/api")
-```
-
-#### The Covid Tracking Project was organized by the news agency The Atlantic early in 2020 in an effort to provide as much data on the pandemic as possible. Coordination of state by state Covid data required building working relationships with state officials to obtain relevant state information. Above are links to the project that can provide further information regarding Covid-19. Additionally, it is worth noting that the project is coming to its end at the beginning of March 2021 as a result of improvements to Federal collection of data. 
-
-
-```python
-# set to true to fetch new data
-get_data = True
+# set to true to fetch new data. 
+get_data = False
 ```
 
 
@@ -1331,7 +1334,7 @@ for state in state_postal:
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_34_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_35_0.png)
     
 
 
@@ -1346,7 +1349,7 @@ fig = plt.figure(figsize=(14,7));
 
 for state in state_postal:
     df_individual = df_states[df_states['state']==state].death.sort_index()
-    df_plot = df_individual.iloc[(df_individual.index.argmax()-180):(df_individual.index.argmax())]
+    df_plot = df_individual.loc['2020-03':'2020-05']
     plt.plot(df_plot,label=f'{state}');
     plt.title('Number of Total Covid Related Deaths')
     plt.xlabel('Date')
@@ -1356,7 +1359,7 @@ for state in state_postal:
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_35_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_36_0.png)
     
 
 
@@ -1378,7 +1381,7 @@ df_AK['deathIncrease'].plot(legend=True);
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_38_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_39_0.png)
     
 
 
@@ -1423,7 +1426,7 @@ sd(df_alaska['death'], model='additive').plot(); # alaska = seasonal
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_46_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_47_0.png)
     
 
 
@@ -1452,10 +1455,10 @@ model.summary()
   <th>Model:</th>           <td>SARIMAX(0, 2, 1)</td> <th>  Log Likelihood     </th> <td>-771.585</td>
 </tr>
 <tr>
-  <th>Date:</th>            <td>Sat, 13 Feb 2021</td> <th>  AIC                </th> <td>1547.170</td>
+  <th>Date:</th>            <td>Tue, 16 Feb 2021</td> <th>  AIC                </th> <td>1547.170</td>
 </tr>
 <tr>
-  <th>Time:</th>                <td>10:52:41</td>     <th>  BIC                </th> <td>1554.840</td>
+  <th>Time:</th>                <td>08:24:46</td>     <th>  BIC                </th> <td>1554.840</td>
 </tr>
 <tr>
   <th>Sample:</th>             <td>03-06-2020</td>    <th>  HQIC               </th> <td>1550.225</td>
@@ -1546,7 +1549,7 @@ predictions_AK.predicted_mean
 
 ```python
 predictions_AK.predicted_mean
-predictions_AK.conf_int(alpha=.05) 
+alaska_predictions = predictions_AK.conf_int(alpha=.05) 
 ```
 
 
@@ -1760,10 +1763,10 @@ stepwise_fit.summary()
   <th>Model:</th>           <td>SARIMAX(0, 2, 1)</td> <th>  Log Likelihood     </th> <td>-770.318</td>
 </tr>
 <tr>
-  <th>Date:</th>            <td>Sat, 13 Feb 2021</td> <th>  AIC                </th> <td>1546.637</td>
+  <th>Date:</th>            <td>Tue, 16 Feb 2021</td> <th>  AIC                </th> <td>1546.637</td>
 </tr>
 <tr>
-  <th>Time:</th>                <td>10:52:43</td>     <th>  BIC                </th> <td>1558.141</td>
+  <th>Time:</th>                <td>08:24:51</td>     <th>  BIC                </th> <td>1558.141</td>
 </tr>
 <tr>
   <th>Sample:</th>                  <td>0</td>        <th>  HQIC               </th> <td>1551.220</td>
@@ -1828,8 +1831,8 @@ print(res.summary()) # high p values indicate difficulty in modeling.
     ==============================================================================
     Dep. Variable:                  death   No. Observations:                  299
     Model:               SARIMAX(0, 2, 1)   Log Likelihood                -594.695
-    Date:                Sat, 13 Feb 2021   AIC                           1193.389
-    Time:                        10:52:44   BIC                           1200.777
+    Date:                Tue, 16 Feb 2021   AIC                           1193.389
+    Time:                        08:24:53   BIC                           1200.777
     Sample:                    03-06-2020   HQIC                          1196.347
                              - 12-29-2020                                         
     Covariance Type:                  opg                                         
@@ -1964,7 +1967,7 @@ plt.show()
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_67_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_68_0.png)
     
 
 
@@ -1979,8 +1982,8 @@ print(res.summary())
     ==============================================================================
     Dep. Variable:                  death   No. Observations:                  344
     Model:               SARIMAX(0, 2, 1)   Log Likelihood                -771.585
-    Date:                Sat, 13 Feb 2021   AIC                           1547.170
-    Time:                        10:52:48   BIC                           1554.840
+    Date:                Tue, 16 Feb 2021   AIC                           1547.170
+    Time:                        08:25:04   BIC                           1554.840
     Sample:                    03-06-2020   HQIC                          1550.225
                              - 02-12-2021                                         
     Covariance Type:                  opg                                         
@@ -2018,7 +2021,7 @@ plt.show();
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_70_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_71_0.png)
     
 
 
@@ -2038,7 +2041,7 @@ plt.show();
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_72_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_73_0.png)
     
 
 
@@ -2047,6 +2050,16 @@ plt.show();
 ## SARIMAX Modeling
 
 ### New York State Ventilator Usage Forecast
+
+#### SARIMAX modeling steps, annotated only for New York forecast
+##### * create state specific dataframe
+##### * obtain seasonality periods with seasonal decomp
+##### * some states provide ventilator data, some provide icu, and others only hospitalization figures. when choosing an exogenous variable to forecast to supplement the death forecast, ventilator data should be prioritized, followed by icu and then hospitalization figures if nothing else is available. 
+##### * gridsearch optimization using auto arima. auto arima function is built into custom library and is called by arima_tune() function
+##### * evaluate_predictions(), evaluates the predictions against the test data. 
+##### * build_SARIMAX_forecast() graphs and returns the first forward looking forecast with the target variable to forecast being the exogenous data we wish to use to enhance the final model. 
+##### * get_exogenous_forecast_dataframe() builds and returns a workable dataframe with that forward looking forecast for input into final step
+##### * build_SARIMAX_forecast() one more time, specifying the target (death) and the exogenous columns (onVentilatorCurrently)
 
 #### NY State was one of the first states to experience the worst of the pandemic. In addition to this, they are one of the most populous states in the country, and have had a spike in Covid cases post-holiday season 2020. California just passed barely passed New York state in total deaths *related (not directly caused) by COVID-19, making New York the state with the second most deaths in the United States.  
 
@@ -2104,18 +2117,6 @@ df.info()
 
 
 ```python
-plt.rcParams['figure.figsize']=(15,10);
-sd(df.loc['04-2020':'06-2020']['deathIncrease']).plot();
-```
-
-
-    
-![png](Covid_Notebook_files/Covid_Notebook_81_0.png)
-    
-
-
-
-```python
 # death increase seasonal decomp plot shows that we have near weekly seasonality. 
 ```
 
@@ -2123,11 +2124,13 @@ sd(df.loc['04-2020':'06-2020']['deathIncrease']).plot();
 ```python
 plt.rcParams['figure.figsize']=(15,10);
 sd(df.loc['04-2020':'06-2020']['onVentilatorCurrently']).plot();
+# m_periods = 7, or 7 days in each cycle since our frequency for the 
+# time series index is 'D', or one day. 
 ```
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_83_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_84_0.png)
     
 
 
@@ -2143,7 +2146,8 @@ stepwise_fit, stepwise_full, results, results_full = arima_tune(df, 'onVentilato
                                                                 verbose=True) 
 # train days arg defaults to 270 days, but can be changed. seasonality can be adjusted as well
 # see docstring for further details
-# forecasting 30 days out into the future with a seasonality length of 6 days
+# forecasting 30 days out into the future with a seasonality length of 7 days
+# verbose = true returns orders and summary as well as plotting diagnostics
 ```
 
     ARIMA order is:  (0, 2, 2)
@@ -2161,10 +2165,10 @@ stepwise_fit, stepwise_full, results, results_full = arima_tune(df, 'onVentilato
   <th>Model:</th>           <td>SARIMAX(0, 2, 2)x(0, 0, [1], 7)</td> <th>  Log Likelihood     </th> <td>-881.528</td>
 </tr>
 <tr>
-  <th>Date:</th>                   <td>Sat, 13 Feb 2021</td>         <th>  AIC                </th> <td>1771.057</td>
+  <th>Date:</th>                   <td>Tue, 16 Feb 2021</td>         <th>  AIC                </th> <td>1771.057</td>
 </tr>
 <tr>
-  <th>Time:</th>                       <td>10:53:04</td>             <th>  BIC                </th> <td>1784.774</td>
+  <th>Time:</th>                       <td>10:24:07</td>             <th>  BIC                </th> <td>1784.774</td>
 </tr>
 <tr>
   <th>Sample:</th>                    <td>05-19-2020</td>            <th>  HQIC               </th> <td>1776.591</td>
@@ -2211,7 +2215,7 @@ stepwise_fit, stepwise_full, results, results_full = arima_tune(df, 'onVentilato
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_85_2.png)
+![png](Covid_Notebook_files/Covid_Notebook_86_2.png)
     
 
 
@@ -2228,7 +2232,7 @@ evaluate_predictions(results, df, 'onVentilatorCurrently', stepwise_fit=stepwise
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_87_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_88_0.png)
     
 
 
@@ -2248,8 +2252,60 @@ exog_forecast, forecast_obj = build_SARIMAX_forecast(model=results_full,
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_88_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_89_0.png)
     
+
+
+
+```python
+forecast_obj.conf_int()[-3:]
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>lower onVentilatorCurrently</th>
+      <th>upper onVentilatorCurrently</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>2021-03-12</th>
+      <td>254.437515</td>
+      <td>1222.552583</td>
+    </tr>
+    <tr>
+      <th>2021-03-13</th>
+      <td>224.304039</td>
+      <td>1238.460202</td>
+    </tr>
+    <tr>
+      <th>2021-03-14</th>
+      <td>193.822435</td>
+      <td>1254.715949</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
 
 
 #### New York ventilator data has shown an improvement more recently. The recent downward trend here is encouraging, and it is likely to continue.
@@ -2264,7 +2320,7 @@ df['onVentilatorCurrently'].plot(figsize=(12,4)); # see spike here coming down
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_90_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_92_0.png)
     
 
 
@@ -2273,6 +2329,7 @@ df['onVentilatorCurrently'].plot(figsize=(12,4)); # see spike here coming down
 
 
 ```python
+# returns df_forecast for input into the final build sarimax forecast below
 stepwise_fit, df_forecast = get_exogenous_forecast_dataframe(dataframe=df,
                                                              original_dataframe=df_ref,
                                                              exog_forecast=exog_forecast, 
@@ -2376,10 +2433,11 @@ df_forecast.tail(5)
 
 
 ```python
-# create model
+# create final model using sarimax
 full_exog_model = SARIMAX(df['death'],df['onVentilatorCurrently'],
                           order=stepwise_fit.order,seasonal_order=stepwise_fit.seasonal_order)
-# fit model 
+
+# fit model before plugging into below function
 model = full_exog_model.fit()
 ```
 
@@ -2398,8 +2456,61 @@ exog_forecast, results_forecast = build_SARIMAX_forecast(model=model,
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_95_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_97_0.png)
     
+
+
+
+```python
+# actual numbers of 95% confidence interval. alpha defaults to .05
+results_forecast.conf_int()[-3:]
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>lower death</th>
+      <th>upper death</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>2021-03-12</th>
+      <td>33784.347268</td>
+      <td>46876.594343</td>
+    </tr>
+    <tr>
+      <th>2021-03-13</th>
+      <td>33462.303924</td>
+      <td>47440.180518</td>
+    </tr>
+    <tr>
+      <th>2021-03-14</th>
+      <td>33128.260645</td>
+      <td>48015.668384</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
 
 
 ##### Above graph implements usage of a function that flattens the lower portion of the confidence interval instead of allowing it to decrease. Deaths remain flat in a best case scenario instead of 'decreasing' in the forecast. 
@@ -2446,17 +2557,20 @@ sd(df_ref.loc['04-2020':'06-2020']['inIcuCurrently']).plot();
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_103_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_106_0.png)
     
 
 
 
 ```python
-state_dataframe, exog_forecast = create_exog_forecast(df_states, 'inIcuCurrently', 
-                                                      m_periods=7, state_postal_code='CA')
+stepwise_fit, stepwise_full, results, results_full = arima_tune(df_ref, 'inIcuCurrently', 
+                                                                days_to_forecast=30, m_periods=7, 
+                                                                verbose=True) 
+# train days arg defaults to 270 days, but can be changed. seasonality can be adjusted as well
+# see docstring for further details
+# forecasting 30 days out into the future with a seasonality length of 7 days
 ```
 
-    Successfully returned indexed dataframe for CA
     ARIMA order is:  (1, 2, 3)
     Seasonal ARIMA order is:  (2, 0, 1, 7)
     Use ARIMA object stepwise_fit to store ARIMA and seasonal ARIMA orders in variables.
@@ -2472,10 +2586,10 @@ state_dataframe, exog_forecast = create_exog_forecast(df_states, 'inIcuCurrently
   <th>Model:</th>           <td>SARIMAX(1, 2, 3)x(2, 0, [1], 7)</td> <th>  Log Likelihood     </th> <td>-1106.950</td>
 </tr>
 <tr>
-  <th>Date:</th>                   <td>Sat, 13 Feb 2021</td>         <th>  AIC                </th> <td>2229.900</td> 
+  <th>Date:</th>                   <td>Tue, 16 Feb 2021</td>         <th>  AIC                </th> <td>2229.900</td> 
 </tr>
 <tr>
-  <th>Time:</th>                       <td>11:48:03</td>             <th>  BIC                </th> <td>2257.157</td> 
+  <th>Time:</th>                       <td>08:28:19</td>             <th>  BIC                </th> <td>2257.157</td> 
 </tr>
 <tr>
   <th>Sample:</th>                    <td>05-19-2020</td>            <th>  HQIC               </th> <td>2240.904</td> 
@@ -2534,7 +2648,167 @@ state_dataframe, exog_forecast = create_exog_forecast(df_states, 'inIcuCurrently
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_104_2.png)
+![png](Covid_Notebook_files/Covid_Notebook_107_2.png)
+    
+
+
+
+```python
+exog_forecast, forecast_obj = build_SARIMAX_forecast(model=results_full, 
+                                                     dataframe=df_ref, 
+                                                     target_column= 'inIcuCurrently', 
+                                                     days_to_forecast=30, 
+                                                     stepwise_fit=stepwise_full, 
+                                                     alpha=.05, state_postal_code='CA')
+
+# this is a forecast of those people who are currently on ventilators in cases
+# involving Covid-19. This forecast data will be used to enhance the overall 
+# forecast of death or deathIncrease (rate of death)
+```
+
+
+    
+![png](Covid_Notebook_files/Covid_Notebook_108_0.png)
+    
+
+
+
+```python
+forecast_obj.conf_int()[-3:]
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>lower inIcuCurrently</th>
+      <th>upper inIcuCurrently</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>2021-03-12</th>
+      <td>-1316.197735</td>
+      <td>1812.058878</td>
+    </tr>
+    <tr>
+      <th>2021-03-13</th>
+      <td>-1493.942065</td>
+      <td>1783.965606</td>
+    </tr>
+    <tr>
+      <th>2021-03-14</th>
+      <td>-1657.600905</td>
+      <td>1770.970581</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+state_dataframe, exog_forecast = create_exog_forecast(df_states, 'inIcuCurrently', 
+                                                      m_periods=7, state_postal_code='CA')
+```
+
+    Successfully returned indexed dataframe for CA
+    ARIMA order is:  (1, 2, 3)
+    Seasonal ARIMA order is:  (2, 0, 1, 7)
+    Use ARIMA object stepwise_fit to store ARIMA and seasonal ARIMA orders in variables.
+    
+
+
+<table class="simpletable">
+<caption>SARIMAX Results</caption>
+<tr>
+  <th>Dep. Variable:</th>           <td>inIcuCurrently</td>          <th>  No. Observations:  </th>    <td>240</td>   
+</tr>
+<tr>
+  <th>Model:</th>           <td>SARIMAX(1, 2, 3)x(2, 0, [1], 7)</td> <th>  Log Likelihood     </th> <td>-1106.950</td>
+</tr>
+<tr>
+  <th>Date:</th>                   <td>Tue, 16 Feb 2021</td>         <th>  AIC                </th> <td>2229.900</td> 
+</tr>
+<tr>
+  <th>Time:</th>                       <td>08:29:05</td>             <th>  BIC                </th> <td>2257.157</td> 
+</tr>
+<tr>
+  <th>Sample:</th>                    <td>05-19-2020</td>            <th>  HQIC               </th> <td>2240.904</td> 
+</tr>
+<tr>
+  <th></th>                          <td>- 01-13-2021</td>           <th>                     </th>     <td> </td>    
+</tr>
+<tr>
+  <th>Covariance Type:</th>               <td>opg</td>               <th>                     </th>     <td> </td>    
+</tr>
+</table>
+<table class="simpletable">
+<tr>
+      <td></td>        <th>coef</th>     <th>std err</th>      <th>z</th>      <th>P>|z|</th>  <th>[0.025</th>    <th>0.975]</th>  
+</tr>
+<tr>
+  <th>ar.L1</th>    <td>   -0.9631</td> <td>    0.049</td> <td>  -19.747</td> <td> 0.000</td> <td>   -1.059</td> <td>   -0.868</td>
+</tr>
+<tr>
+  <th>ma.L1</th>    <td>   -0.0191</td> <td>    0.089</td> <td>   -0.214</td> <td> 0.830</td> <td>   -0.194</td> <td>    0.156</td>
+</tr>
+<tr>
+  <th>ma.L2</th>    <td>   -0.7361</td> <td>    0.078</td> <td>   -9.422</td> <td> 0.000</td> <td>   -0.889</td> <td>   -0.583</td>
+</tr>
+<tr>
+  <th>ma.L3</th>    <td>    0.1093</td> <td>    0.075</td> <td>    1.465</td> <td> 0.143</td> <td>   -0.037</td> <td>    0.256</td>
+</tr>
+<tr>
+  <th>ar.S.L7</th>  <td>    0.2439</td> <td>    0.325</td> <td>    0.750</td> <td> 0.453</td> <td>   -0.393</td> <td>    0.881</td>
+</tr>
+<tr>
+  <th>ar.S.L14</th> <td>    0.1039</td> <td>    0.071</td> <td>    1.465</td> <td> 0.143</td> <td>   -0.035</td> <td>    0.243</td>
+</tr>
+<tr>
+  <th>ma.S.L7</th>  <td>   -0.2487</td> <td>    0.336</td> <td>   -0.740</td> <td> 0.460</td> <td>   -0.908</td> <td>    0.410</td>
+</tr>
+<tr>
+  <th>sigma2</th>   <td> 1191.5610</td> <td>  102.142</td> <td>   11.666</td> <td> 0.000</td> <td>  991.366</td> <td> 1391.756</td>
+</tr>
+</table>
+<table class="simpletable">
+<tr>
+  <th>Ljung-Box (L1) (Q):</th>     <td>0.03</td> <th>  Jarque-Bera (JB):  </th> <td>23.81</td>
+</tr>
+<tr>
+  <th>Prob(Q):</th>                <td>0.86</td> <th>  Prob(JB):          </th> <td>0.00</td> 
+</tr>
+<tr>
+  <th>Heteroskedasticity (H):</th> <td>0.87</td> <th>  Skew:              </th> <td>-0.62</td>
+</tr>
+<tr>
+  <th>Prob(H) (two-sided):</th>    <td>0.55</td> <th>  Kurtosis:          </th> <td>4.01</td> 
+</tr>
+</table><br/><br/>Warnings:<br/>[1] Covariance matrix calculated using the outer product of gradients (complex-step).
+
+
+
+    
+![png](Covid_Notebook_files/Covid_Notebook_110_2.png)
     
 
 
@@ -2557,9 +2831,14 @@ forecast_object = graph_exog_forecast(dataframe=state_dataframe,
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_106_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_112_0.png)
     
 
+
+
+```python
+
+```
 
 
 ```python
@@ -2795,7 +3074,7 @@ sd(df.loc['04-2020':'06-2020']['hospitalizedCurrently']).plot();
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_118_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_125_0.png)
     
 
 
@@ -2823,10 +3102,10 @@ stepwise_fit, stepwise_full, results, results_full = arima_tune(df, 'hospitalize
   <th>Model:</th>             <td>SARIMAX(0, 2, 1)</td>    <th>  Log Likelihood     </th> <td>-1560.634</td>
 </tr>
 <tr>
-  <th>Date:</th>              <td>Sat, 13 Feb 2021</td>    <th>  AIC                </th> <td>3125.269</td> 
+  <th>Date:</th>              <td>Tue, 16 Feb 2021</td>    <th>  AIC                </th> <td>3125.269</td> 
 </tr>
 <tr>
-  <th>Time:</th>                  <td>12:43:32</td>        <th>  BIC                </th> <td>3132.197</td> 
+  <th>Time:</th>                  <td>10:35:56</td>        <th>  BIC                </th> <td>3132.197</td> 
 </tr>
 <tr>
   <th>Sample:</th>               <td>05-19-2020</td>       <th>  HQIC               </th> <td>3128.061</td> 
@@ -2867,7 +3146,7 @@ stepwise_fit, stepwise_full, results, results_full = arima_tune(df, 'hospitalize
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_119_2.png)
+![png](Covid_Notebook_files/Covid_Notebook_126_2.png)
     
 
 
@@ -2882,7 +3161,7 @@ evaluate_predictions(results, df, 'hospitalizedCurrently',
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_121_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_128_0.png)
     
 
 
@@ -2898,7 +3177,7 @@ exog_forecast, forecast_obj = build_SARIMAX_forecast(model=results_full,
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_122_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_129_0.png)
     
 
 
@@ -2956,24 +3235,69 @@ exog_forecast, results_forecast = build_SARIMAX_forecast(model=model,
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_129_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_136_0.png)
     
 
 
 
 ```python
-results_forecast.predicted_mean[-5:]
+results_forecast.conf_int()[-5:]
 ```
 
 
 
 
-    2021-03-10    47041.298532
-    2021-03-11    47432.913649
-    2021-03-12    47774.846888
-    2021-03-13    48082.671287
-    2021-03-14    48239.111011
-    Freq: D, Name: predicted_mean, dtype: float64
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>lower death</th>
+      <th>upper death</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>2021-03-10</th>
+      <td>44698.502289</td>
+      <td>49384.094774</td>
+    </tr>
+    <tr>
+      <th>2021-03-11</th>
+      <td>44967.253255</td>
+      <td>49898.574043</td>
+    </tr>
+    <tr>
+      <th>2021-03-12</th>
+      <td>45185.608779</td>
+      <td>50364.084997</td>
+    </tr>
+    <tr>
+      <th>2021-03-13</th>
+      <td>45360.771459</td>
+      <td>50804.571114</td>
+    </tr>
+    <tr>
+      <th>2021-03-14</th>
+      <td>45382.988130</td>
+      <td>51095.233892</td>
+    </tr>
+  </tbody>
+</table>
+</div>
 
 
 
@@ -3120,14 +3444,14 @@ sd(df_ref.loc['10-2020':'12-2020']['hospitalizedCurrently']).plot(); # seasonali
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_139_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_146_0.png)
     
 
 
 
 ```python
 state_dataframe, exog_forecast = create_exog_forecast(df_states, 'hospitalizedCurrently', 
-                                                      days_to_forecast=45, m_periods=6, 
+                                                      days_to_forecast=45, m_periods=7, 
                                                       state_postal_code='FL')
 ```
 
@@ -3147,10 +3471,10 @@ state_dataframe, exog_forecast = create_exog_forecast(df_states, 'hospitalizedCu
   <th>Model:</th>           <td>SARIMAX(0, 1, 0)x(0, 0, [1], 6)</td> <th>  Log Likelihood     </th> <td>-1650.364</td>
 </tr>
 <tr>
-  <th>Date:</th>                   <td>Sat, 13 Feb 2021</td>         <th>  AIC                </th> <td>3304.729</td> 
+  <th>Date:</th>                   <td>Tue, 16 Feb 2021</td>         <th>  AIC                </th> <td>3304.729</td> 
 </tr>
 <tr>
-  <th>Time:</th>                       <td>11:08:55</td>             <th>  BIC                </th> <td>3311.489</td> 
+  <th>Time:</th>                       <td>08:34:47</td>             <th>  BIC                </th> <td>3311.489</td> 
 </tr>
 <tr>
   <th>Sample:</th>                    <td>05-19-2020</td>            <th>  HQIC               </th> <td>3307.460</td> 
@@ -3191,7 +3515,7 @@ state_dataframe, exog_forecast = create_exog_forecast(df_states, 'hospitalizedCu
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_140_2.png)
+![png](Covid_Notebook_files/Covid_Notebook_147_2.png)
     
 
 
@@ -3209,7 +3533,7 @@ forecast_object = graph_exog_forecast(dataframe=state_dataframe,
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_141_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_148_0.png)
     
 
 
@@ -3227,7 +3551,7 @@ forecast_object = graph_exog_forecast(dataframe=state_dataframe,
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_142_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_149_0.png)
     
 
 
@@ -3495,18 +3819,18 @@ sd(df_whole_US['hospitalizedCurrently']).plot();
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_152_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_159_0.png)
     
 
 
 
 ```python
 dataframe, exog_forecast = create_exog_forecast(df_whole_US, 'hospitalizedCurrently', 
-                                                days_to_forecast=45, m_periods=7)
+                                                days_to_forecast=30, m_periods=7)
 ```
 
     ARIMA order is:  (1, 2, 1)
-    Seasonal ARIMA order is:  (1, 0, 0, 7)
+    Seasonal ARIMA order is:  (2, 0, 0, 7)
     Use ARIMA object stepwise_fit to store ARIMA and seasonal ARIMA orders in variables.
     
 
@@ -3514,22 +3838,22 @@ dataframe, exog_forecast = create_exog_forecast(df_whole_US, 'hospitalizedCurren
 <table class="simpletable">
 <caption>SARIMAX Results</caption>
 <tr>
-  <th>Dep. Variable:</th>        <td>hospitalizedCurrently</td>     <th>  No. Observations:  </th>    <td>225</td>   
+  <th>Dep. Variable:</th>        <td>hospitalizedCurrently</td>     <th>  No. Observations:  </th>    <td>240</td>   
 </tr>
 <tr>
-  <th>Model:</th>           <td>SARIMAX(1, 2, 1)x(1, 0, [], 7)</td> <th>  Log Likelihood     </th> <td>-1756.261</td>
+  <th>Model:</th>           <td>SARIMAX(1, 2, 1)x(2, 0, [], 7)</td> <th>  Log Likelihood     </th> <td>-1825.622</td>
 </tr>
 <tr>
-  <th>Date:</th>                   <td>Sat, 13 Feb 2021</td>        <th>  AIC                </th> <td>3520.522</td> 
+  <th>Date:</th>                   <td>Tue, 16 Feb 2021</td>        <th>  AIC                </th> <td>3661.243</td> 
 </tr>
 <tr>
-  <th>Time:</th>                       <td>11:09:29</td>            <th>  BIC                </th> <td>3534.005</td> 
+  <th>Time:</th>                       <td>08:35:43</td>            <th>  BIC                </th> <td>3678.279</td> 
 </tr>
 <tr>
-  <th>Sample:</th>                    <td>05-19-2020</td>           <th>  HQIC               </th> <td>3525.970</td> 
+  <th>Sample:</th>                    <td>05-19-2020</td>           <th>  HQIC               </th> <td>3668.121</td> 
 </tr>
 <tr>
-  <th></th>                          <td>- 12-29-2020</td>          <th>                     </th>     <td> </td>    
+  <th></th>                          <td>- 01-13-2021</td>          <th>                     </th>     <td> </td>    
 </tr>
 <tr>
   <th>Covariance Type:</th>               <td>opg</td>              <th>                     </th>     <td> </td>    
@@ -3537,41 +3861,200 @@ dataframe, exog_forecast = create_exog_forecast(df_whole_US, 'hospitalizedCurren
 </table>
 <table class="simpletable">
 <tr>
-     <td></td>        <th>coef</th>     <th>std err</th>      <th>z</th>      <th>P>|z|</th>  <th>[0.025</th>    <th>0.975]</th>  
+      <td></td>        <th>coef</th>     <th>std err</th>      <th>z</th>      <th>P>|z|</th>  <th>[0.025</th>    <th>0.975]</th>  
 </tr>
 <tr>
-  <th>ar.L1</th>   <td>    0.1993</td> <td>    0.074</td> <td>    2.693</td> <td> 0.007</td> <td>    0.054</td> <td>    0.344</td>
+  <th>ar.L1</th>    <td>    0.1604</td> <td>    0.071</td> <td>    2.265</td> <td> 0.023</td> <td>    0.022</td> <td>    0.299</td>
 </tr>
 <tr>
-  <th>ma.L1</th>   <td>   -0.8657</td> <td>    0.055</td> <td>  -15.814</td> <td> 0.000</td> <td>   -0.973</td> <td>   -0.758</td>
+  <th>ma.L1</th>    <td>   -0.8665</td> <td>    0.054</td> <td>  -16.195</td> <td> 0.000</td> <td>   -0.971</td> <td>   -0.762</td>
 </tr>
 <tr>
-  <th>ar.S.L7</th> <td>    0.2738</td> <td>    0.035</td> <td>    7.762</td> <td> 0.000</td> <td>    0.205</td> <td>    0.343</td>
+  <th>ar.S.L7</th>  <td>    0.3457</td> <td>    0.032</td> <td>   10.649</td> <td> 0.000</td> <td>    0.282</td> <td>    0.409</td>
 </tr>
 <tr>
-  <th>sigma2</th>  <td> 7.218e+05</td> <td> 2.78e+04</td> <td>   25.981</td> <td> 0.000</td> <td> 6.67e+05</td> <td> 7.76e+05</td>
+  <th>ar.S.L14</th> <td>    0.1347</td> <td>    0.054</td> <td>    2.509</td> <td> 0.012</td> <td>    0.029</td> <td>    0.240</td>
+</tr>
+<tr>
+  <th>sigma2</th>   <td> 7.502e+05</td> <td> 2.72e+04</td> <td>   27.613</td> <td> 0.000</td> <td> 6.97e+05</td> <td> 8.03e+05</td>
 </tr>
 </table>
 <table class="simpletable">
 <tr>
-  <th>Ljung-Box (L1) (Q):</th>     <td>0.10</td> <th>  Jarque-Bera (JB):  </th> <td>3556.85</td>
+  <th>Ljung-Box (L1) (Q):</th>     <td>0.14</td> <th>  Jarque-Bera (JB):  </th> <td>3442.77</td>
 </tr>
 <tr>
-  <th>Prob(Q):</th>                <td>0.75</td> <th>  Prob(JB):          </th>  <td>0.00</td>  
+  <th>Prob(Q):</th>                <td>0.70</td> <th>  Prob(JB):          </th>  <td>0.00</td>  
 </tr>
 <tr>
-  <th>Heteroskedasticity (H):</th> <td>0.64</td> <th>  Skew:              </th>  <td>1.95</td>  
+  <th>Heteroskedasticity (H):</th> <td>0.70</td> <th>  Skew:              </th>  <td>1.75</td>  
 </tr>
 <tr>
-  <th>Prob(H) (two-sided):</th>    <td>0.06</td> <th>  Kurtosis:          </th>  <td>22.54</td> 
+  <th>Prob(H) (two-sided):</th>    <td>0.12</td> <th>  Kurtosis:          </th>  <td>21.93</td> 
 </tr>
 </table><br/><br/>Warnings:<br/>[1] Covariance matrix calculated using the outer product of gradients (complex-step).
 
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_153_2.png)
+![png](Covid_Notebook_files/Covid_Notebook_160_2.png)
     
+
+
+
+```python
+stepwise_fit, stepwise_full, results, results_full = arima_tune(df_whole_US, 'hospitalizedCurrently', 
+                                                                days_to_forecast=30, m_periods=7, 
+                                                                verbose=True) 
+```
+
+    ARIMA order is:  (1, 2, 1)
+    Seasonal ARIMA order is:  (2, 0, 0, 7)
+    Use ARIMA object stepwise_fit to store ARIMA and seasonal ARIMA orders in variables.
+    
+
+
+<table class="simpletable">
+<caption>SARIMAX Results</caption>
+<tr>
+  <th>Dep. Variable:</th>        <td>hospitalizedCurrently</td>     <th>  No. Observations:  </th>    <td>240</td>   
+</tr>
+<tr>
+  <th>Model:</th>           <td>SARIMAX(1, 2, 1)x(2, 0, [], 7)</td> <th>  Log Likelihood     </th> <td>-1825.622</td>
+</tr>
+<tr>
+  <th>Date:</th>                   <td>Tue, 16 Feb 2021</td>        <th>  AIC                </th> <td>3661.243</td> 
+</tr>
+<tr>
+  <th>Time:</th>                       <td>08:36:07</td>            <th>  BIC                </th> <td>3678.279</td> 
+</tr>
+<tr>
+  <th>Sample:</th>                    <td>05-19-2020</td>           <th>  HQIC               </th> <td>3668.121</td> 
+</tr>
+<tr>
+  <th></th>                          <td>- 01-13-2021</td>          <th>                     </th>     <td> </td>    
+</tr>
+<tr>
+  <th>Covariance Type:</th>               <td>opg</td>              <th>                     </th>     <td> </td>    
+</tr>
+</table>
+<table class="simpletable">
+<tr>
+      <td></td>        <th>coef</th>     <th>std err</th>      <th>z</th>      <th>P>|z|</th>  <th>[0.025</th>    <th>0.975]</th>  
+</tr>
+<tr>
+  <th>ar.L1</th>    <td>    0.1604</td> <td>    0.071</td> <td>    2.265</td> <td> 0.023</td> <td>    0.022</td> <td>    0.299</td>
+</tr>
+<tr>
+  <th>ma.L1</th>    <td>   -0.8665</td> <td>    0.054</td> <td>  -16.195</td> <td> 0.000</td> <td>   -0.971</td> <td>   -0.762</td>
+</tr>
+<tr>
+  <th>ar.S.L7</th>  <td>    0.3457</td> <td>    0.032</td> <td>   10.649</td> <td> 0.000</td> <td>    0.282</td> <td>    0.409</td>
+</tr>
+<tr>
+  <th>ar.S.L14</th> <td>    0.1347</td> <td>    0.054</td> <td>    2.509</td> <td> 0.012</td> <td>    0.029</td> <td>    0.240</td>
+</tr>
+<tr>
+  <th>sigma2</th>   <td> 7.502e+05</td> <td> 2.72e+04</td> <td>   27.613</td> <td> 0.000</td> <td> 6.97e+05</td> <td> 8.03e+05</td>
+</tr>
+</table>
+<table class="simpletable">
+<tr>
+  <th>Ljung-Box (L1) (Q):</th>     <td>0.14</td> <th>  Jarque-Bera (JB):  </th> <td>3442.77</td>
+</tr>
+<tr>
+  <th>Prob(Q):</th>                <td>0.70</td> <th>  Prob(JB):          </th>  <td>0.00</td>  
+</tr>
+<tr>
+  <th>Heteroskedasticity (H):</th> <td>0.70</td> <th>  Skew:              </th>  <td>1.75</td>  
+</tr>
+<tr>
+  <th>Prob(H) (two-sided):</th>    <td>0.12</td> <th>  Kurtosis:          </th>  <td>21.93</td> 
+</tr>
+</table><br/><br/>Warnings:<br/>[1] Covariance matrix calculated using the outer product of gradients (complex-step).
+
+
+
+    
+![png](Covid_Notebook_files/Covid_Notebook_161_2.png)
+    
+
+
+
+```python
+exog_forecast, results_forecast = build_SARIMAX_forecast(model=results_full, 
+                     dataframe=df_whole_US, 
+                     target_column='hospitalizedCurrently', 
+                     days_to_forecast=30, stepwise_fit=stepwise_full, 
+                     alpha=.05)
+```
+
+
+    
+![png](Covid_Notebook_files/Covid_Notebook_162_0.png)
+    
+
+
+
+```python
+results_forecast.conf_int()[-5:]
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>lower hospitalizedCurrently</th>
+      <th>upper hospitalizedCurrently</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>2021-03-10</th>
+      <td>-37162.653996</td>
+      <td>56833.546329</td>
+    </tr>
+    <tr>
+      <th>2021-03-11</th>
+      <td>-42675.077866</td>
+      <td>56981.481885</td>
+    </tr>
+    <tr>
+      <th>2021-03-12</th>
+      <td>-48225.243116</td>
+      <td>57207.320274</td>
+    </tr>
+    <tr>
+      <th>2021-03-13</th>
+      <td>-53868.515937</td>
+      <td>57624.618009</td>
+    </tr>
+    <tr>
+      <th>2021-03-14</th>
+      <td>-59633.796094</td>
+      <td>58077.962479</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
 
 
 
@@ -3581,13 +4064,13 @@ forecast_object_deaths = graph_exog_forecast(dataframe=dataframe,
                                       exogenous_column='hospitalizedCurrently', 
                                       exog_forecast=exog_forecast,
                                       df_ref=df_ref, 
-                                      alpha=.05, days_to_forecast=45, 
+                                      alpha=.05, days_to_forecast=30, 
                                       train_days=270, m_periods=7)
 ```
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_154_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_164_0.png)
     
 
 
@@ -3623,29 +4106,29 @@ forecast_object_deaths.conf_int(alpha=.05)[-5:]
   </thead>
   <tbody>
     <tr>
-      <th>2021-03-25</th>
-      <td>542285.791255</td>
-      <td>845053.763793</td>
+      <th>2021-03-10</th>
+      <td>535041.892460</td>
+      <td>689517.817213</td>
     </tr>
     <tr>
-      <th>2021-03-26</th>
-      <td>542201.557896</td>
-      <td>855979.672209</td>
+      <th>2021-03-11</th>
+      <td>536047.723241</td>
+      <td>699351.622777</td>
     </tr>
     <tr>
-      <th>2021-03-27</th>
-      <td>542053.546031</td>
-      <td>866972.095110</td>
+      <th>2021-03-12</th>
+      <td>536973.512268</td>
+      <td>709267.354209</td>
     </tr>
     <tr>
-      <th>2021-03-28</th>
-      <td>541839.945093</td>
-      <td>878027.715806</td>
+      <th>2021-03-13</th>
+      <td>537822.057496</td>
+      <td>719264.943468</td>
     </tr>
     <tr>
-      <th>2021-03-29</th>
-      <td>541571.173458</td>
-      <td>889155.497596</td>
+      <th>2021-03-14</th>
+      <td>538590.395094</td>
+      <td>729338.707643</td>
     </tr>
   </tbody>
 </table>
@@ -3660,13 +4143,13 @@ forecast_object = graph_exog_forecast(dataframe=dataframe,
                                       exogenous_column='hospitalizedCurrently', 
                                       exog_forecast=exog_forecast,
                                       df_ref=df_ref, 
-                                      alpha=.025, days_to_forecast=45, 
+                                      alpha=.025, days_to_forecast=30, 
                                       train_days=270, m_periods=7)
 ```
 
 
     
-![png](Covid_Notebook_files/Covid_Notebook_156_0.png)
+![png](Covid_Notebook_files/Covid_Notebook_166_0.png)
     
 
 
@@ -3724,11 +4207,11 @@ forecast_object = graph_exog_forecast(dataframe=dataframe,
 
 ## Conclusions
 
-#### I chose to undertake this project for several reasons. It is relevant to what is happening now, and it has real implications peoples' lives. On a much more personal level, it is frustrating to have three grandparents in their 90's all of whom I am unable to see during this time. Additionally, mother has an auto-immune deficiency, which makes her risk around others who are irresponsible that much more real for me. 
+I chose to undertake this project for several reasons. It is relevant to what is happening now, and it has real implications in peoples' lives. On a much more personal level, it is frustrating to have three grandparents in their 90's whom I am unable to see at this time. Additionally, my mother has an auto-immune deficiency, which makes her risk around irresponsible individuals that much more real for me.
 
-#### Most people seem to be respectful enough to wear a mask, but after nearly a year many are growing tired of the simple task. One hopes that respect for others would prevail over the desire to have 'freedom' to do as one pleases. The covenant that we enter into as citizens is with each other. It's to protect each other, be considerate, and be understanding that one person's wants (the desire to not wear a mask, to party, to have a good time) do not supercede the responsibility to protect our fellow Americans. 
+Most people seem to be respectful enough to wear a mask, but after nearly a year many are growing tired of this simple task. I hope that respect for others will prevail over the desire for personal freedom. The covenant that we enter into as citizens is with each other. It's to protect each other, and it requires that we be considerate and understand that one person's wants (the desire to not wear a mask, to party, to have a good time) do not supercede the responsibility to protect our fellow Americans.
 
-#### Furthermore, the argument for personal freedom is in this case ridiculous - it's akin to arguing that one should have the personal freedom to walk around shooting anyone you please simply because you deserve that 'freedom'. With vaccine distribution occurring, we don't have much longer to endure the difficulties. 
+With vaccine distribution occurring, we don't have much longer to endure the difficulties.
 
 ## Future Work
 
@@ -3863,26 +4346,6 @@ actual_numbers = fcast[last_predictions:]
 return actual_numbers
 ```
 
-
-    
-![png](Covid_Notebook_files/Covid_Notebook_180_0.png)
-    
-
-
-
-    
-![png](Covid_Notebook_files/Covid_Notebook_180_1.png)
-    
-
-
-
-      File "<ipython-input-94-18377b5ffa97>", line 103
-        return actual_numbers
-        ^
-    SyntaxError: 'return' outside function
-    
-
-
 ## Univariate Forecast with RNN
 
 ### Texas
@@ -3892,22 +4355,6 @@ return actual_numbers
 create_NN_predict(df_states=df_states,state_postal_code='TX',days=25,epochs=4) 
 ```
 
-    Epoch 1/4
-    295/295 [==============================] - 9s 28ms/step - loss: 0.0223
-    Epoch 2/4
-    295/295 [==============================] - 8s 29ms/step - loss: 8.9686e-04
-    Epoch 3/4
-    295/295 [==============================] - 8s 28ms/step - loss: 0.0013
-    Epoch 4/4
-    295/295 [==============================] - 8s 28ms/step - loss: 4.9281e-04
-    
-
-
-    
-![png](Covid_Notebook_files/Covid_Notebook_183_1.png)
-    
-
-
 ### Florida
 
 
@@ -3915,44 +4362,12 @@ create_NN_predict(df_states=df_states,state_postal_code='TX',days=25,epochs=4)
 create_NN_predict(df_states,'FL',20,epochs=4)
 ```
 
-    Epoch 1/4
-    339/339 [==============================] - 8s 21ms/step - loss: 0.0207
-    Epoch 2/4
-    339/339 [==============================] - 8s 22ms/step - loss: 0.0020
-    Epoch 3/4
-    339/339 [==============================] - 8s 22ms/step - loss: 2.1629e-04
-    Epoch 4/4
-    339/339 [==============================] - 8s 22ms/step - loss: 2.3257e-04
-    
-
-
-    
-![png](Covid_Notebook_files/Covid_Notebook_185_1.png)
-    
-
-
 ### California
 
 
 ```python
 create_NN_predict(df_states,'CA',20,epochs=4)
 ```
-
-    Epoch 1/4
-    304/304 [==============================] - 8s 22ms/step - loss: 0.0142
-    Epoch 2/4
-    304/304 [==============================] - 7s 22ms/step - loss: 5.4282e-04
-    Epoch 3/4
-    304/304 [==============================] - 7s 22ms/step - loss: 0.0015
-    Epoch 4/4
-    304/304 [==============================] - 7s 22ms/step - loss: 6.0757e-04
-    
-
-
-    
-![png](Covid_Notebook_files/Covid_Notebook_187_1.png)
-    
-
 
 ## Multivariate Forecast with RNN
 
@@ -3974,29 +4389,10 @@ df_whole_US['onVentilatorCurrently'].plot(legend=True, figsize=(15,7))
 ```
 
 
-    
-![png](Covid_Notebook_files/Covid_Notebook_191_0.png)
-    
-
-
-
 ```python
 mv_forecast(df_whole_US,days_to_train=50,days_to_forecast=20,epochs=100) 
 #hyperparameters to optimize days to train?
 ```
-
-
-    ---------------------------------------------------------------------------
-
-    NameError                                 Traceback (most recent call last)
-
-    <ipython-input-105-11e0c28f26cd> in <module>
-    ----> 1 mv_forecast(df_whole_US,days_to_train=50,days_to_forecast=20,epochs=100)
-          2 #hyperparameters to optimize days to train?
-    
-
-    NameError: name 'mv_forecast' is not defined
-
 
 
 ```python

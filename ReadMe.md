@@ -23,6 +23,12 @@
 *[The Covid Tracking Project](https://covidtracking.com/)*
 ##### The Covid Tracking Project was organized by the news agency The Atlantic early in 2020 in an effort to provide as much data on the pandemic as possible. Coordination of state by state Covid data required building working relationships with state officials to obtain relevant state information. Above are links to the project that can provide further information regarding Covid-19. Additionally, it is worth noting that the project is coming to its end at the beginning of March 2021 as a result of improvements to Federal collection of data.
 
+## The Approach 
+
+##### The forecasting focuses on several key states for various reasons. New York was initially one of the hardest hit by the pandemic, flattening the curve with their efforts until the 2020 holiday season increased virus transmission. California continues to suffer and neared statewide ICU capacity as a result of the 2020 holidays. Florida, as a travel hub with no current travel restrictions (2-16-2021) is also a focal point of death forecasts and is undoubtedly negatively affecting efforts to reduce transmission by other states. 
+
+##### Additionally, the forecasts are enhanced by different variables depending on the specific state's reporting. Some states report current ICU numbers but not ventilator data. For example, Texas's final death forecast takes into account the number of those currenly hospitalized instead of ICU numbers as they do not report ICU data. Wherever possible, the number of Covid patients currently on ventilators is used as an input to improve the forecasting of deaths. 
+
 ## Notebook Table of Contents
 
 ##### 1.1 Introduction
@@ -36,13 +42,25 @@
 
 ### Supervised Learning with SARIMA and SARIMAX 
 
-#### California Summary Forecast
+#### New York Ventilator Forecast
+![svg](Covid_Notebook_files/Covid_Notebook_88_0.png)
 
+#### New York Summary Forecast - This utilizes the forecast from the previous graph to enhance the death forecast
+![svg](Covid_Notebook_files/Covid_Notebook_95_0.png)
+
+#### California Summary Forecast
 ![svg](Covid_Notebook_files/Covid_Notebook_106_0.png)
-##### California Covid-19 Deaths Forecast first forecasts the number of individuals with Covid who are in the ICU, then creates a SARIMAX model and forecast of deaths based on that forecast data.
+##### California Covid-19 Deaths Forecast first forecasts the number of individuals with Covid who are in the ICU instead of Ventilator data
+
+#### Florida Summary Forecast
+![svg](Covid_Notebook_files/Covid_Notebook_142_0.png)
+##### Florida Covid-19 Deaths Forecast first forecasts the number of individuals with Covid who are hospitalized as neither ICU nor Ventilator figures were provided to the project. 
+
+#### Texas Summary Forecast
+![svg](Covid_Notebook_files/Covid_Notebook_129_0.png)
+##### Texas Covid-19 Deaths Forecast first forecasts the number of individuals with Covid who are hospitalized as neither ICU nor Ventilator figures were provided to the project. 
 
 #### United States Summary Forecast
-
 ![svg](Covid_Notebook_files/Covid_Notebook_154_0.png)
 ##### United States Covid-19 Deaths Forecast first forecasts the number of currently hospitalized individuals with Covid, then creates a SARIMAX model and forecast of deaths based on that forecast data.
 

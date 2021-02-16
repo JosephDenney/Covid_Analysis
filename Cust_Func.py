@@ -439,8 +439,10 @@ def get_exogenous_forecast_dataframe(dataframe, original_dataframe, exog_forecas
     seasonal_order = stepwise_fit.seasonal_order
   
     return stepwise_fit, dataframe
-    
-def create_exog_forecast(dataframe, target_column, alpha=.05, days_to_forecast=30, train_days=270, m_periods=1, state_postal_code=None, verbose=True):
+ 
+# turn this into a dashboard on streamlit. 
+
+def tunearima_and_create_exog_forecast(dataframe, target_column, alpha=.05, days_to_forecast=30, train_days=270, m_periods=1, state_postal_code=None, verbose=True):
     '''
     summary function that returns a new dataframe as well as a forecast that will become the exogenous variable in the graph_exog_forecast function
     '''
@@ -462,7 +464,7 @@ def create_exog_forecast(dataframe, target_column, alpha=.05, days_to_forecast=3
     
     return dataframe, exog_forecast
         
-def graph_exog_forecast(dataframe, target_column, exog_forecast, df_ref, alpha=.05, days_to_forecast=30, train_days=270, m_periods=1, exogenous_column=None, state_postal_code=None):
+def graph_full_model_forecast(dataframe, target_column, exog_forecast, df_ref, alpha=.05, days_to_forecast=30, train_days=270, m_periods=1, exogenous_column=None, state_postal_code=None):
     '''
     summary function whose purpose is to graph a target_column's forecast
     '''
