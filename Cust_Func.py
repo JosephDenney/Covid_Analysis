@@ -88,6 +88,7 @@ def sort_and_clean_df(dataframe, target_columns, percent_data_threshold=1, US_df
 
     return dataframe
 
+
 def state_dataframe(dataframe, state_postal_code):
     ''' 
     *Notes: function assumes all state and US data are seasonal on a weekly basis, but can be specified. if data has no seasonality, use return_arima_order()
