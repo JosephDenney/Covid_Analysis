@@ -49,7 +49,7 @@
 ![svg](Covid_Notebook_files/Covid_Notebook_95_0.png)
 
 #### California Summary Forecast
-![svg](Covid_Notebook_files/Covid_Notebook_106_0.png)
+![svg](Covid_Notebook_files/Covid_Notebook_112_0.png)
 ##### California Covid-19 Deaths Forecast first forecasts the number of individuals with Covid who are in the ICU instead of Ventilator data
 
 #### Florida Summary Forecast
