@@ -57,7 +57,7 @@
 ##### Florida Covid-19 Deaths Forecast first forecasts the number of individuals with Covid who are hospitalized as neither ICU nor Ventilator figures were provided to the project. 
 
 #### Texas Summary Forecast
-![svg](Covid_Notebook_files/Covid_Notebook_129_0.png)
+![svg](Covid_Notebook_files/Covid_Notebook_136_0.png)
 ##### Texas Covid-19 Deaths Forecast first forecasts the number of individuals with Covid who are hospitalized as neither ICU nor Ventilator figures were provided to the project. 
 
 #### United States Summary Forecast
