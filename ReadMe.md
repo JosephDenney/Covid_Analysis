@@ -1,4 +1,4 @@
-# Covid-19 Deaths Forecasting
+# Covid-19 Forecasting
 
 ![svg](Covid_Notebook_files/Stay-Home-Save-Lives-16x9-1.gif)
 
