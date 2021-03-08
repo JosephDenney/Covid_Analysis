@@ -2,7 +2,7 @@
 
 ![svg](Covid_Notebook_files/Stay-Home-Save-Lives-16x9-1.gif)
 
-##### [Slideshow PDF](Pdfs/Covid-19 Forecast.pdf)
+##### [Slideshow PDF](Presentation PDF.pdf)
 
 ### Outline
 * [Purpose](#Purpose)
