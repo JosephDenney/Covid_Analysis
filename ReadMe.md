@@ -2,7 +2,7 @@
 
 ![svg](Covid_Notebook_files/Stay-Home-Save-Lives-16x9-1.gif)
 
-##### [Slideshow PDF](Presentation PDF.pdf)
+##### [Slideshow PDF](https://github.com/JosephDenney/Covid_Analysis/blob/master/Presentation%20PDF.pdf)
 
 ### Outline
 * [Purpose](#Purpose)
